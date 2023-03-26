@@ -180,6 +180,7 @@ case "$1" in
 	do
 	for (( c=$START; c<=$END; c++ ))
 	do
+           pushd ./output &> /dev/null
            sudo docker exec vnc-user$c sh -c "find -name recovery.jsonlz4 -exec cp {} /home/headless/ \;"
            sudo docker exec vnc-user$c sh -c "find -name cookies.sqlite -exec cp {} /home/headless/ \;"
            sleep 2
