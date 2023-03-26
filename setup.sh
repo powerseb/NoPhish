@@ -200,6 +200,7 @@ case "$1" in
            rm -r -f ./user$c-recovery.jsonlz4 
            rm -r -f ./user$c-cookies.sqlite
            rm -r -f ./user$c-cookies.sqlite*
+           popd &> /dev/null
 	done
 	sleep 60
 	done
