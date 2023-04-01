@@ -40,8 +40,11 @@ def main(args):
   if os.path.exists(phis+"-sessions.json"):
     os.remove(phis+"-sessions.json")  
   
-  
-  text = mozlz4_to_text(filepath_in)
+  try:
+    text = mozlz4_to_text(filepath_in)
+  except:
+    print("No sessions")
+    sys.exit(1)
   
   #print(text.decode('utf8').replace("'", '"'))
   #json_raw = text.decode('utf8').replace("'", '"')

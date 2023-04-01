@@ -31,6 +31,7 @@ Usage: ./setup.sh -u No. Users -d Domain -t Target
          -s true / false if ssl is required - if ssl is set crt and key file are needed
          -c Full path to the crt file of the ssl certificate
          -k Full path to the key file of the ssl certificate
+         -a Adjust default user agent string
 ```
 
 A basic run looks like the following:

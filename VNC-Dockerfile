@@ -8,6 +8,7 @@ USER root
 
 # Remove all panel inputs
 RUN mv /usr/bin/xfce4-panel /usr/bin/xfce4-panel-old
+RUN rm /usr/libexec/noVNCdim/app/images/icons/novnc.ico
 
 USER headless
 
