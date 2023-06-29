@@ -197,11 +197,11 @@ case "$1" in
            sleep 2
            if [ -n "$OFormat" ]
 	   then
-		python ./session-collector.py ./user$c-recovery.jsonlz4 simple
-		python ./cookies-collector.py ./user$c-cookies.sqlite simple
+		python3 ./session-collector.py ./user$c-recovery.jsonlz4 simple
+		python3 ./cookies-collector.py ./user$c-cookies.sqlite simple
 	   else
-		python ./session-collector.py ./user$c-recovery.jsonlz4 default
-		python ./cookies-collector.py ./user$c-cookies.sqlite default
+		python3 ./session-collector.py ./user$c-recovery.jsonlz4 default
+		python3 ./cookies-collector.py ./user$c-cookies.sqlite default
 	   
 	   fi
            rm -r -f ./user$c-recovery.jsonlz4 
