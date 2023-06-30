@@ -9,7 +9,7 @@ A detailed description of the setup can be found here - [Another phishing tool](
 Install the required python modules:
 
 ```console
-pip install lz4 json
+pip install lz4
 ```
 
 Install the setup (which will create the required docker images):
