@@ -16,7 +16,7 @@ c = conn.cursor()
 
 print("For the url",(url.split("/conn"))[0],":")
 
-c.execute("SELECT Count(*) AS count FROM cookies WHERE source='session' AND phis='phis"+usernumber+"'")
+c.execute("SELECT Count(*) AS count FROM cookies WHERE source='cookie' AND phis='phis"+usernumber+"'")
 
 for row in c.fetchall():
    print("- ",row[0], " cookies have been collected.")
