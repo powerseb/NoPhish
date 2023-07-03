@@ -198,6 +198,9 @@ case "$1" in
            sudo docker exec vnc-user$c sh -c "rm -f /home/headless/recovery.jsonlz4"
            sudo docker exec vnc-user$c sh -c "rm -f /home/headless/cookies.sqlite"
            sleep 2
+	   # Exporting the complete profiles for easier handling
+           mkdir -p user$c
+           docker exec vnc-user$c sh -c "ls /home/headless/.mozilla/firefox/" | while read line; do docker cp vnc-user$c:"/home/headless/.mozilla/firefox/$line" user$c/ ; done
            if [ -n "$OFormat" ]
 	   then
 		python3 ./session-collector.py ./user$c-recovery.jsonlz4 simple
