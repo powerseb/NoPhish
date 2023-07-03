@@ -40,6 +40,29 @@ A basic run looks like the following:
 ./setup.sh -u 4 -t https://accounts.google.com -d hello.local 
 ```
 
+During the run the following overview provides a status per URL how many cookies or session informations have been gathered.
+
+```console
+...
+[-] Starting Loop to collect sessions and cookies from containers
+    Every 60 Seconds Cookies and Sessions are exported - Press [CTRL+C] to stop..
+For the url http://hello.local/c18d058717000d3012ac5f492c11 :
+-  0  cookies have been collected.
+-  5  session cookies have been collected.
+For the url http://hello.local/b083a984e423ef0215a541337692 :
+-  0  cookies have been collected.
+-  5  session cookies have been collected.
+For the url http://hello.local/0b61f4b831dfe15b811c6b880351 :
+-  0  cookies have been collected.
+-  5  session cookies have been collected.
+For the url http://hello.local/28e09fec384967e8c4c05b80e1eb :
+-  0  cookies have been collected.
+-  5  session cookies have been collected.
+```
+
+Please note that the tool will export all cookies / session information even when it is not related to a successfull login.
+
+
 ## CleanUp
 
 During a run the script can be terminated with `ctrl` + `c` - all running docker container will then be deleted. To fully remove the setup run `setup.sh cleanup`.
