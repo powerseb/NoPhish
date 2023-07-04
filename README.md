@@ -62,6 +62,11 @@ For the url http://hello.local/28e09fec384967e8c4c05b80e1eb :
 
 Please note that the tool will export all cookies / session information even when it is not related to a successfull login.
 
+## Using profile export
+If you are using the complete FireFox profile export, you can just call firefox with -profile like that:
+`& 'C:\Program Files\Mozilla Firefox\firefox.exe' -profile <PathToProfile>\w396hdsl.default-release\`
+Everything is getting restored, including the latest site.
+
 
 ## CleanUp
 
