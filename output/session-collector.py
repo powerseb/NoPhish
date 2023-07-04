@@ -113,35 +113,16 @@ def main(args):
             "storeId": "0",
             "value": cookie_value
         }
-    else:
-        cookie = {
-            "Host raw": "https://"+ cookie_host,
-            "Name raw": cookie_name,
-            "Path raw": cookie_path,
-            "Content raw": cookie_value,
-            "Expires": "At the end of the session",
-            "Expires raw": "0",
-            "Send for": SendFor,
-            "Send for raw": SendForRaw,
-            "HTTP only raw": HTTPonly,
-            "SameSite raw": sameSiteRaw,
-            "This domain only": ThisDomain,
-            "This domain only raw": ThisDomainRaw,
-            "Store raw": "firefox-default",
-            "First Party Domain": ""
-        }
-    json_object = json.dumps(cookie, indent=2)
-    with open(phis+"-sessions.json", "a") as outfile:
-      outfile.write(json_object + ",\n")
+        json_object = json.dumps(cookie, indent=2)
+        with open(phis+"-sessions.json", "a") as outfile:
+          outfile.write(json_object + ",\n")
     
     c.execute("INSERT INTO cookies(phis,name,value,host,expiry, path, isSecure, isHttpOnly, sameSite, source) VALUES(?,?,?,?,?,?,?,?,?,?)",(phis,cookie_name,cookie_value,cookie_host,"0", cookie_path, cookie_secure, cookie_httponly, cookie_samesite,"session"))
-    conn.commit()  
-    
-    
+    conn.commit()
     
   conn.close()
     
-  if os.path.exists(phis+"-sessions.json"):
+  if os.path.exists(phis+"-sessions.json") and oformat == "simple":
     with open(phis+"-sessions.json", 'r', encoding='utf-8') as file:
       data = file.readlines()
     data[0] = "[{\n"

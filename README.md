@@ -32,6 +32,8 @@ Usage: ./setup.sh -u No. Users -d Domain -t Target
          -c Full path to the crt file of the ssl certificate
          -k Full path to the key file of the ssl certificate
          -a Adjust default user agent string
+         -z Compress profile to zip - will be ignored if parameter -e is set
+
 ```
 
 A basic run looks like the following:
@@ -64,8 +66,16 @@ Please note that the tool will export all cookies / session information even whe
 
 ## Using profile export
 If you are using the complete FireFox profile export, you can just call firefox with -profile like that:
-`& 'C:\Program Files\Mozilla Firefox\firefox.exe' -profile <PathToProfile>\w396hdsl.default-release\`
+
+On Windows:
+`& 'C:\Program Files\Mozilla Firefox\firefox.exe' -profile <PathToProfile>\phis1-ffprofile\`
+
+On Linux:
+`firefox-esr -profile <PathToProfile>/phis1-ffprofile --allow-downgrade`
+
 Everything is getting restored, including the latest site.
+
+Please note by default you need to extract the zip archive or set the parameter `-z` to `false`. If the export format `-e simple` is chosen two json files will be generated which can be used with Cookiebro which is available for [Firefox](https://addons.mozilla.org/de/firefox/addon/cookiebro/) and [Chrome](https://chrome.google.com/webstore/detail/cookiebro/lpmockibcakojclnfmhchibmdpmollgn).
 
 
 ## CleanUp

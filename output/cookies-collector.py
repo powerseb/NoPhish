@@ -83,30 +83,13 @@ def main():
                 "storeId": "0",
                 "value": value
             }
-        else:
-            cookie = {
-                "Host raw": "https://"+host,
-                "Name raw": name,
-                "Path raw": path,
-                "Content raw": value,
-                "Expires": str(datetime.fromtimestamp(expiry)),
-                "Expires raw": expiry,
-                "Send for": SendFor,
-                "Send for raw": SendForRaw,
-                "HTTP only raw": HTTPonly,
-                "SameSite raw": sameSiteRaw,
-                "This domain only": ThisDomain,
-                "This domain only raw": ThisDomainRaw,
-                "Store raw": "firefox-default",
-                "First Party Domain": ""
-            }
-        
-        json_object = json.dumps(cookie, indent=2)
-        with open(phis+"-cookies.json", "a") as outfile:
-            outfile.write(json_object + ",\n")
+            
+            json_object = json.dumps(cookie, indent=2)
+            with open(phis+"-cookies.json", "a") as outfile:
+                outfile.write(json_object + ",\n")
     db.close()
     
-    if os.path.exists(phis+"-cookies.json"):
+    if os.path.exists(phis+"-cookies.json") and oformat == "simple":
         with open(phis+"-cookies.json", 'r', encoding='utf-8') as file:
             data = file.readlines()
         data[0] = "[{\n"
