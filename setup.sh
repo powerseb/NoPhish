@@ -127,8 +127,8 @@ case "$1" in
 
 	    #container {
 	      background-color: rgb(56, 74, 99);
-	      width: 100vh; /* Set equal width and height */
-	      height: 50vh;
+	      width: 150vh; /* Set equal width and height */
+	      height: 60vh;
 	      border-radius: 10px; /* Add rounded corners */
 	      overflow: hidden; /* Hide the scrollbars */
 	      display: flex; /* Use flexbox */
@@ -139,21 +139,28 @@ case "$1" in
 	    }
 
 	    #scaled-iframe {
-	      width: 100%;
-	      height: 100%;
-	      transform: scale(0.9);
-	      transform-origin: middle;
+	      margin-right: 300px;
+	      min-width: 1600px;
+	      min-height: 900px;
+            -ms-zoom: 0.5;
+            -moz-transform: scale(0.5);
+            -moz-transform-origin: middle;
+            -o-transform: scale(0.5);
+            -o-transform-origin: middle;
+            -webkit-transform: scale(0.5);
+            -webkit-transform-origin: middle;
 	    }
 
 	    #button {
 	      background-color: orange;
+	      position: absolute;
 	      color: white;
 	      border: none;
 	      border-radius: 5px;
 	      padding: 10px 40px;
 	      font-size: 16px;
 	      cursor: pointer;
-	      margin-right: 35px; /* Adjust the margin-left as per your preference */
+	      margin-left: 1100px; /* Adjust the margin-left as per your preference */
 	      text-decoration: none; /* Remove underline */
 	      white-space: nowrap;
 	    }
@@ -175,10 +182,12 @@ case "$1" in
 	    if [ -n "$useragent" ]
 	    then
 	    	echo 'user_pref("general.useragent.override","'$useragent'");' > ./vnc/user.js
+	    	echo 'user_pref("font.name.serif.x-western", "DejaVu Sans");' >> ./vnc/user.js
 	    	sudo docker cp ./vnc/user.js vnc-user$c:/home/headless/
 	    	sudo docker exec vnc-user$c /bin/bash -c 'find -name prefs.js -exec dirname {} \; | xargs cp /home/headless/user.js '
 	    else
 	    	echo 'user_pref("general.useragent.override","This user was phished by NoPhish");' > ./vnc/user.js
+	    	echo 'user_pref("font.name.serif.x-western", "DejaVu Sans");' >> ./vnc/user.js
 	    	sudo docker cp ./vnc/user.js vnc-user$c:/home/headless/user.js
 	    	sudo docker exec vnc-user$c sh -c "find -name cookies.sqlite -exec dirname {} \; | xargs -n 1 cp -f -r /home/headless/user.js "	    	  
 	    fi
@@ -195,9 +204,11 @@ case "$1" in
 		ProxyPassReverse http://$CIP:6901
 		</Location>
 		<Location /$PW/websockify>
-		ProxyPass ws://$CIP:6901/websockify
+		ProxyPass ws://$CIP:6901/websockify keepalive=On
 		ProxyPassReverse ws://$CIP:6901/websockify
 		</Location>
+		ProxyTimeout 600
+		Timeout 600
 	" >> ./proxy/000-default.conf
 	    printf "[-] Starting containers $c of $END\033[0K\r"
 
