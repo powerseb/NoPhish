@@ -200,7 +200,7 @@ case "$1" in
 	    fi
 	    
 	    sleep 1
-	    echo $pagetitle
+	    
 	    if [ -n "$pagetitle" ]
 	    then
 	        sudo docker exec --user root vnc-user$c sh -c "sed -i 's/Connecting.../$pagetitle/' /usr/libexec/noVNCdim/conn.html"
