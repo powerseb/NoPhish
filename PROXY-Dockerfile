@@ -5,21 +5,37 @@ FROM ubuntu:latest
 MAINTAINER HubbelBubbel
 
 # Install apache2 
-RUN apt-get update && apt-get install -y apache2
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y apache2 php libapache2-mod-php dsniff cron
 
 # Enable the required apache modules 
-RUN a2enmod proxy proxy_balancer proxy_connect proxy_http proxy_http2 proxy_wstunnel rewrite slotmem_shm ssl
+RUN a2enmod proxy proxy_balancer proxy_connect proxy_http proxy_http2 proxy_wstunnel rewrite slotmem_shm ssl headers auth_basic
 RUN a2dismod autoindex -f
 
 RUN mv /var/www/html/index.html /var/www/html/index.html.old
+COPY ./proxy/index.html /var/www/html/
 
 # Copy the virtual host configuration file 
 COPY ./proxy/security.conf /etc/apache2/conf-enabled/
+
 
 # Start Apache 
 # RUN service apache2 start
 CMD ["/bin/bash","service","apache2","start"]
 
+# Create redirects
+RUN touch /tmp/redirects.txt
+# RUN chown www-data:www-data /tmp/redirects.txt
+RUN chmod 777 /tmp/redirects.txt
+
+# disconnect script
+COPY ./proxy/discon.sh /usr/local/bin/
+WORKDIR /usr/local/bin/
+RUN chmod +x discon.sh
+RUN echo "* * * * * root /usr/local/bin/discon.sh" > /etc/cron.d/my_cronjob
+RUN chmod 0644 /etc/cron.d/my_cronjob
+CMD ["cron", "-f"]
+
 # To tell docker to expose this port
 EXPOSE 80
 EXPOSE 443
+EXPOSE 65534

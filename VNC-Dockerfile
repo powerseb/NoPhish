@@ -19,4 +19,5 @@ COPY ./vnc/WinCursor /home/headless/.icons/WinCursor/
 # Copy adjusted html file for noVNC
 COPY ./vnc/conn.html /usr/libexec/noVNCdim/
 COPY ./vnc/ui.js /usr/libexec/noVNCdim/app/
+COPY ./vnc/base.css /usr/libexec/noVNCdim/app/styles/
 
