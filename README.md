@@ -64,6 +64,8 @@ For the url http://hello.local/28e09fec384967e8c4c05b80e1eb :
 
 Please note that the tool will export all cookies / session information even when it is not related to a successfull login.
 
+Further you can also directly interact with the tool on the status page - `http(s)://%DOMAIN%:65534/status.php`. There you have the possability to disconnect the user and directly take over the session. 
+
 ## Using profile export
 If you are using the complete FireFox profile export, you can just call firefox with -profile like that:
 

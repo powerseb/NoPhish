@@ -446,7 +446,13 @@ body {
         sudo docker exec rev-proxy /bin/bash -c "crontab"
         sudo docker cp ./output/status.php rev-proxy:/var/www/html/
         printf "[+] Reverse proxy running \033[0K\r\n"  
-        printf "[+] Admin interface available under http://$Domain:65534/status.php            \n"
+        	if [ -n "$SSL" ]
+	then
+		printf "[+] Admin interface available under https://$Domain:65534/status.php            \n"
+	else
+		printf "[+] Admin interface available under http://$Domain:65534/status.php            \n"
+	fi
+        
         printf "    Login with: \n"
         printf "    Username: angler \n"
         printf "    Password: $AdminPW  \n"  
