@@ -8,8 +8,8 @@
 	   echo -e "\t -d Domain which is used for phishing"
 	   echo -e "\t -t Target website which should be displayed for the user"
 	   echo -e "\t -e Export format"
-	   echo -e "\t -s true / false if ssl is required - if ssl is set crt and key file are needed"
-	   echo -e "\t -c Full path to the crt file of the ssl certificate"
+	   echo -e "\t -s true / false if ssl is required - if ssl is set pem and key file are needed"
+	   echo -e "\t -c Full path to the pem file of the ssl certificate"
 	   echo -e "\t -k Full path to the key file of the ssl certificate"
 	   echo -e "\t -a Adjust default user agent string"  
 	   echo -e "\t -z Compress profile to zip - will be ignored if parameter -e is set"
@@ -110,7 +110,7 @@ case "$1" in
 		echo "<VirtualHost *:443>" >> ./proxy/000-default.conf
 		echo "
 		SSLEngine on
-	   	SSLCertificateFile /etc/ssl/certs/server.crt
+	   	SSLCertificateFile /etc/ssl/certs/server.pem
 	   	SSLCertificateKeyFile /etc/ssl/private/server.key
 		" >> ./proxy/000-default.conf
 		echo '
@@ -118,6 +118,10 @@ case "$1" in
     		RewriteMap redirects txt:/tmp/redirects.txt
     		RewriteCond ${redirects:%{HTTP_HOST}%{REQUEST_URI}} ^.+
     		RewriteRule ^ ${C:1}? [R=302,L]
+    		
+    		<Location /status.php>
+		    Deny from all
+		</Location>
 		' >> ./proxy/000-default.conf
 	else
 		echo "<VirtualHost *:80>" >> ./proxy/000-default.conf
@@ -409,9 +413,18 @@ body {
 	echo "</VirtualHost>" >> ./proxy/000-default.conf
         rm -r ./novnc.ico
         
-        apachefile="./proxy/000-default.conf"
-        awk '/<VirtualHost/,/<\/VirtualHost/ {gsub("*:80", "*:65534");gsub("Location /","Location /angler/");print; if (/<\/VirtualHost/) print ""}' "$apachefile" > temp.txt
-	awk '/<VirtualHost/,/<\/VirtualHost/ {gsub("Location /angler/status.php","Location /");gsub("Deny from all","AuthType Basic \n                    AuthName \"Restricted Area\" \n                    AuthUserFile /etc/apache2/.htpasswd \n                    Require valid-user");print; if (/<\/VirtualHost/) print ""}' "temp.txt" > temp2.txt
+        if [ -n "$SSL" ]
+	then
+		apachefile="./proxy/000-default.conf"
+        	awk '/<VirtualHost/,/<\/VirtualHost/ {gsub(":443", ":65534");gsub("Location /","Location /angler/");print; if (/<\/VirtualHost/) print ""}' "$apachefile" > temp.txt
+		awk '/<VirtualHost/,/<\/VirtualHost/ {gsub("Location /angler/status.php","Location /");gsub("Deny from all","AuthType Basic \n                    AuthName \"Restricted Area\" \n                    AuthUserFile /etc/apache2/.htpasswd \n                    Require valid-user");print; if (/<\/VirtualHost/) print ""}' "temp.txt" > temp2.txt
+	else
+		apachefile="./proxy/000-default.conf"
+        	awk '/<VirtualHost/,/<\/VirtualHost/ {gsub(":80", ":65534");gsub("Location /","Location /angler/");print; if (/<\/VirtualHost/) print ""}' "$apachefile" > temp.txt
+		awk '/<VirtualHost/,/<\/VirtualHost/ {gsub("Location /angler/status.php","Location /");gsub("Deny from all","AuthType Basic \n                    AuthName \"Restricted Area\" \n                    AuthUserFile /etc/apache2/.htpasswd \n                    Require valid-user");print; if (/<\/VirtualHost/) print ""}' "temp.txt" > temp2.txt
+	fi
+        
+
 	cat temp2.txt >> ./proxy/000-default.conf
 	
 	rm -r ./temp.txt
@@ -431,7 +444,7 @@ body {
 
 	if [ -n "$SSL" ]
 	then
-		sudo docker cp $cert rev-proxy:/etc/ssl/certs/server.crt 
+		sudo docker cp $cert rev-proxy:/etc/ssl/certs/server.pem
 		sudo docker cp $key rev-proxy:/etc/ssl/private/server.key
 	fi
 	
