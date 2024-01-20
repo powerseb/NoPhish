@@ -10,6 +10,9 @@ USER root
 RUN mv /usr/bin/xfce4-panel /usr/bin/xfce4-panel-old
 RUN rm /usr/libexec/noVNCdim/app/images/icons/novnc.ico
 
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip locales
+RUN pip install pyxhook
+
 USER headless
 
 # COPY XFCE4 config for white background 
