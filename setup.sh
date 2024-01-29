@@ -326,7 +326,7 @@ case "$1" in
 	    PW=$(openssl rand -hex 14)
 	    AdminPW=$(tr -dc 'A-Za-z0-9!' < /dev/urandom | head -c 32)
 	    Token=$(cat /proc/sys/kernel/random/uuid)
-	    sudo docker run -dit --name vnc-user$c -e VNC_PW=$PW -e NOVNC_HEARTBEAT=30 vnc-docker 
+	    sudo docker run -dit --name vnc-user$c -e VNC_PW=$PW -e NOVNC_HEARTBEAT=30 vnc-docker  &> /dev/null 
 	    sleep 1
 	    sudo docker exec vnc-user$c sh -c "firefox &" &> /dev/null
 	    sleep 1
