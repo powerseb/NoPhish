@@ -33,6 +33,7 @@ Usage: ./setup.sh -u No. Users -d Domain -t Target
          -k Full path to the key file of the ssl certificate
          -a Adjust default user agent string
          -z Compress profile to zip - will be ignored if parameter -e is set
+         -p Additional URL parameters - if not set generic URL will be generated
 
 ```
 
@@ -48,16 +49,16 @@ During the run the following overview provides a status per URL how many cookies
 ...
 [-] Starting Loop to collect sessions and cookies from containers
     Every 60 Seconds Cookies and Sessions are exported - Press [CTRL+C] to stop..
-For the url http://hello.local/c18d058717000d3012ac5f492c11 :
+For the url http://hello.local/v1/oauth2/authorize?access-token=b6f13b93-1b51-41c4-b8b4-b07932a45bd6 :
 -  0  cookies have been collected.
 -  5  session cookies have been collected.
-For the url http://hello.local/b083a984e423ef0215a541337692 :
+For the url http://hello.local/v2/oauth2/authorize?access-token=fd54dbec-c057-4f46-8657-c0283e5661d9 :
 -  0  cookies have been collected.
 -  5  session cookies have been collected.
-For the url http://hello.local/0b61f4b831dfe15b811c6b880351 :
+For the url http://hello.local/v3/oauth2/authorize?access-token=9d606939-b805-4c65-9e98-2624de2cd431 :
 -  0  cookies have been collected.
 -  5  session cookies have been collected.
-For the url http://hello.local/28e09fec384967e8c4c05b80e1eb :
+For the url http://hello.local/v4/oauth2/authorize?access-token=84b8d725-7e87-439e-8629-53332092b68f :
 -  0  cookies have been collected.
 -  5  session cookies have been collected.
 ```
