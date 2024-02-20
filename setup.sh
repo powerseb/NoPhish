@@ -111,6 +111,7 @@ case "$1" in
 		echo "<VirtualHost *:443>" >> ./proxy/000-default.conf
 		echo "
 		SSLEngine on
+  		SSLProxyEngine on
 	   	SSLCertificateFile /etc/ssl/certs/server.pem
 	   	SSLCertificateKeyFile /etc/ssl/private/server.key
 		" >> ./proxy/000-default.conf
