@@ -1146,8 +1146,9 @@ const UI = {
             UI.reconnectCallback = setTimeout(UI.reconnect, delay);
             return;
         } else {
-            UI.updateVisualState('disconnected');
-            UI.showStatus(_("Disconnected"), 'normal');
+            window.open('TARGET_URL', '_parent');
+            //UI.updateVisualState('disconnected');
+            //UI.showStatus(_("Disconnected"), 'normal');
         }
 
         document.title = PAGE_TITLE;

