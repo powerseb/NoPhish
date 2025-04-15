@@ -16,10 +16,10 @@
     <title>Connecting...</title>
     <link rel="icon" type="image/x-icon" href="app/images/icons/novnc.ico">
     <!-- Apple iOS Safari settings -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-
+    
     <!-- @2x -->
     <link rel="apple-touch-icon" sizes="40x40" type="image/png" href="app/images/icons/novnc-ios-40.png">
     <link rel="apple-touch-icon" sizes="58x58" type="image/png" href="app/images/icons/novnc-ios-58.png">
@@ -36,6 +36,29 @@
     <!-- Stylesheets -->
     <link rel="stylesheet" href="app/styles/base.css">
     <link rel="stylesheet" href="app/styles/input.css">
+    <style>
+	#keyboard {
+	    position: fixed;
+	    bottom: 20px; /* 20px from the bottom of the screen */
+	    right: 20px;  /* 20px from the right of the screen */
+	    z-index: 1000; /* Ensure it appears above other content */
+	}
+
+	/* Style the input (the image button) to make it circular */
+	#noVNC_keyboard_button {
+	    border-radius: 25%; /* Makes it circular */
+	    border: 2px solid black; /* Adds a black border around the button */
+	    cursor: pointer; /* Change cursor to pointer to indicate it's clickable */
+	    background-color: white;
+	    /* transition: transform 0.4s ease, bottom 0.4s ease; /* Smooth transition for scaling and positioning */
+	}
+
+	/* Hover effect to enlarge the button */
+	#noVNC_keyboard_button:hover {
+	    transform: scale(1.1); /* Slightly enlarge the button on hover */
+	}
+    </style>
+
     <!-- Images that will later appear via CSS -->
     <link rel="preload" as="image" href="app/images/info.svg">
     <link rel="preload" as="image" href="app/images/error.svg">
@@ -56,6 +79,9 @@
     </div>
     
     
+    <div id="keyboard">
+        <input type="image" alt="Keyboard" id="noVNC_keyboard_button" class="noVNC_button" title="Show Keyboard" src="app/images/keyboard.svg" width="45" height="40">
+    </div>
     <!-- noVNC Control Bar -->
     <div id="noVNC_control_bar_anchor" style="display:none">
 

@@ -1,0 +1,26 @@
+# The Base Image used to create this Image
+FROM accetto/ubuntu-vnc-xfce-firefox-g3
+
+# Just my name who wrote this file
+MAINTAINER HubbelBubbel
+
+USER root
+
+# Remove all panel inputs
+RUN mv /usr/bin/xfce4-panel /usr/bin/xfce4-panel-old
+RUN rm /usr/libexec/noVNCdim/app/images/icons/novnc.ico
+
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip locales unclutter
+RUN pip install pyxhook --break-system-packages
+
+USER headless
+
+# COPY XFCE4 config for white background 
+COPY ./vnc/xfce4-desktop.xml /home/headless/.config/xfce4/xfconf/xfce-perchannel-xml/
+
+# Copy adjusted html file for noVNC
+COPY ./vnc/mconn.html /usr/libexec/noVNCdim/conn.html
+COPY ./vnc/keyboard.svg /usr/libexec/noVNCdim/app/images/
+COPY ./vnc/ui.js /usr/libexec/noVNCdim/app/
+COPY ./vnc/base.css /usr/libexec/noVNCdim/app/styles/
+
