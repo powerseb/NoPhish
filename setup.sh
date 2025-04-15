@@ -776,7 +776,7 @@ case "$1" in
            sudo docker exec vnc-user$c test -e /home/headless/Keylog.txt && sudo docker cp vnc-user$c:/home/headless/Keylog.txt ./user$c-keylog.txt
            sudo docker exec "mvnc-user$((c + 1 ))" sh -c "find -name recovery.jsonlz4 -exec cp {} /home/headless/ \;"
            sudo docker exec "mvnc-user$((c + 1 ))" sh -c "find -name cookies.sqlite -exec cp {} /home/headless/ \;"
-           sudo docker exec "mvnc-user$((c + 1 ))" test -e /home/headless/Keylog.txt && sudo docker cp mvnc-user$c:/home/headless/Keylog.txt ./muser$c-keylog.txt
+           sudo docker exec "mvnc-user$((c + 1 ))" test -e /home/headless/Keylog.txt && sudo docker cp "mvnc-user$((c + 1 ))":/home/headless/Keylog.txt ./muser$c-keylog.txt
            sleep 2
            sudo docker cp vnc-user$c:/home/headless/recovery.jsonlz4 ./user$c-recovery.jsonlz4
            sudo docker cp vnc-user$c:/home/headless/cookies.sqlite ./user$c-cookies.sqlite
