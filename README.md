@@ -6,6 +6,8 @@ A detailed description of the setup can be found here - [Another phishing tool](
 
 ## Installation
 
+Ensure that docker is installed and working.
+
 Install the required python modules:
 
 ```console
@@ -66,6 +68,8 @@ For the url http://hello.local/v4/oauth2/authorize?access-token=84b8d725-7e87-43
 Please note that the tool will export all cookies / session information even when it is not related to a successfull login.
 
 Further you can also directly interact with the tool on the status page - `http(s)://%DOMAIN%:65534/status.php`. There you have the possability to disconnect the user and directly take over the session. 
+
+In the current version of the tool for every user two containers are spawned - one for desktops and one for mobile devices. Based on the user agent the target gets redirected to suitable container. The output of the mobile container is named with a leading "m" (e.g. mphis1-ffprofile). 
 
 ## Using profile export
 If you are using the complete FireFox profile export, you can just call firefox with -profile like that:
