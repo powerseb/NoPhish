@@ -625,11 +625,14 @@ case "$1" in
 		      </form>
 		    </div>		    
 		" >> ./output/status.php
-		if [ -n "$param" ]
+		if [ "$mobile" = "false" ]
 		then
-		urls+=("https://$Domain/v$c/$param")
-		else
-		urls+=("https://$Domain/v$c/oauth2/authorize?access-token=$Token")
+			if [ -n "$param" ]
+			then
+			urls+=("http://$Domain/v$c/$param")
+			else
+			urls+=("http://$Domain/v$c/oauth2/authorize?access-token=$Token")
+			fi
 		fi
 	    else
 		echo "
@@ -649,11 +652,14 @@ case "$1" in
 		      </form>
 		    </div>
 		" >> ./output/status.php
-		if [ -n "$param" ]
+		if [ "$mobile" = "false" ]
 		then
-		urls+=("http://$Domain/v$c/$param")
-		else
-		urls+=("http://$Domain/v$c/oauth2/authorize?access-token=$Token")
+			if [ -n "$param" ]
+			then
+			urls+=("http://$Domain/v$c/$param")
+			else
+			urls+=("http://$Domain/v$c/oauth2/authorize?access-token=$Token")
+			fi
 		fi
 	    fi
 	
