@@ -360,6 +360,7 @@ case "$1" in
 		    	echo 'user_pref("signon.rememberSignons", false);' >> ./vnc/muser.js
 		    	echo 'user_pref("signon.formlessCapture.enabled", false);' >> ./vnc/muser.js
 		    	echo 'user_pref("signon.storeWhenAutocompleteOff", false);' >> ./vnc/muser.js
+       			echo 'user_pref("layout.css.devPixelsPerPx", "0.9");' >> ./vnc/muser.js
 		    	sudo docker cp ./vnc/muser.js mvnc-user$c:/home/headless/user.js
 		    	sudo docker exec mvnc-user$c sh -c "find -name cookies.sqlite -exec dirname {} \; | xargs -n 1 cp -f -r /home/headless/user.js "
 		else
