@@ -730,6 +730,7 @@ case "$1" in
 		sudo docker cp "./proxy/miframe$d.html" rev-proxy:/var/www/html/
 	    fi
 	done
+    END=$((END * 2))
 	sudo docker exec rev-proxy sed -i 's/MaxKeepAliveRequests 100/MaxKeepAliveRequests 0/' '/etc/apache2/apache2.conf'
 	
 	sudo docker exec rev-proxy /bin/bash service apache2 restart &> /dev/null
