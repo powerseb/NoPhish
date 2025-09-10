@@ -719,7 +719,7 @@ case "$1" in
 	sudo docker exec -it rev-proxy /bin/bash -c "htpasswd -cb /etc/apache2/.htpasswd angler $AdminPW"
 	sudo docker cp ./proxy/000-default.conf rev-proxy:/etc/apache2/sites-enabled/   &> /dev/null
 	sudo docker cp ./novnc.ico rev-proxy:/var/www/html/favicon.ico
-	END=$((END / 2))
+
 	for (( d=$START; d<=$END; d++ ))
 	do
 	    if [ -f "./proxy/iframe$d.html" ]; then
@@ -730,7 +730,7 @@ case "$1" in
 		sudo docker cp "./proxy/miframe$d.html" rev-proxy:/var/www/html/
 	    fi
 	done
-    END=$((END * 2))
+
 	sudo docker exec rev-proxy sed -i 's/MaxKeepAliveRequests 100/MaxKeepAliveRequests 0/' '/etc/apache2/apache2.conf'
 	
 	sudo docker exec rev-proxy /bin/bash service apache2 restart &> /dev/null
