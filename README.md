@@ -1,3 +1,35 @@
+
+<div align="right">
+  <details>
+    <summary >🌐 Language</summary>
+    <div>
+      <div align="center">
+        <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=en">English</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=zh-CN">简体中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=zh-TW">繁體中文</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=ja">日本語</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=ko">한국어</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=hi">हिन्दी</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=th">ไทย</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=fr">Français</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=de">Deutsch</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=es">Español</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=it">Italiano</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=ru">Русский</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=pt">Português</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=nl">Nederlands</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=pl">Polski</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=ar">العربية</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=fa">فارسی</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=tr">Türkçe</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=vi">Tiếng Việt</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=id">Bahasa Indonesia</a>
+        | <a href="https://openaitx.github.io/view.html?user=powerseb&project=NoPhish&lang=as">অসমীয়া</
+      </div>
+    </div>
+  </details>
+</div>
+
 # NoPhish
  
 Another phishing toolkit which provides an docker and noVNC based infrastructure. The whole setup is based on the initial article of [mrd0x](https://mrd0x.com/bypass-2fa-using-novnc/) and [fhlipzero](https://fhlipzero.io/blogs/6_noVNC/noVNC.html).
